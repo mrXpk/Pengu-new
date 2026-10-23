@@ -1,26 +1,61 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
- */
-
-import '@/global.css';
-
 import { Platform } from 'react-native';
+
+export const PenguColors = {
+  background: '#F9FBFA',
+  card: '#FFFFFF',
+  surfaceMint: '#EAF8EF',
+  surfaceMintLight: '#F2FBF5',
+  surfaceIce: '#EAF6FF',
+  surfaceGold: '#FFF6DF',
+  surfacePurple: '#F3F0FF',
+  surfaceRed: '#FFF0F0',
+  surfaceGray: '#F2F4F7',
+
+  primaryGreen: '#208B46',
+  primaryGreenDark: '#186B35',
+  primaryGreenLight: '#33A85C',
+  mintBorder: '#BCE6CA',
+  iceBorder: '#C6E4FF',
+  cardBorder: '#E8EEF2',
+  goldBorder: '#F7D98C',
+  dangerRed: '#D92D20',
+  dangerBorder: '#FECDCA',
+
+  navyHeading: '#091E42',
+  textPrimary: '#10243E',
+  textSecondary: '#4A5B75',
+  textMuted: '#7A8B9E',
+  white: '#FFFFFF',
+
+  coinGold: '#F5A623',
+  starYellow: '#FFB800',
+  streakOrange: '#FF7A00',
+  partialOrange: '#F59E0B',
+  inactiveDot: '#CBD5E1',
+};
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: PenguColors.navyHeading,
+    textSecondary: PenguColors.textSecondary,
+    background: PenguColors.background,
+    backgroundElement: PenguColors.card,
+    backgroundSelected: PenguColors.surfaceMint,
+    tint: PenguColors.primaryGreen,
+    icon: PenguColors.textSecondary,
+    tabIconDefault: '#6E7F96',
+    tabIconSelected: PenguColors.primaryGreen,
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    background: '#0B1528',
+    backgroundElement: '#152238',
+    backgroundSelected: '#163828',
+    tint: '#33A85C',
+    icon: '#94A3B8',
+    tabIconDefault: '#64748B',
+    tabIconSelected: '#33A85C',
   },
 } as const;
 
@@ -28,26 +63,19 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
+    sans: 'System',
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
     sans: 'normal',
-    serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    rounded: '"Nunito", "Fredoka", "SF Pro Rounded", system-ui, sans-serif',
+    mono: 'monospace',
   },
 });
 
@@ -61,5 +89,5 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const BottomTabInset = Platform.select({ ios: 80, android: 76 }) ?? 76;
+export const MaxContentWidth = 600;
