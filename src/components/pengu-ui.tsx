@@ -13,6 +13,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { Fonts, PenguColors } from '@/constants/theme';
 import { HabitIconType, usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
 export const MASCOT_IMAGES = {
   waving: require('@/assets/mascot/waving.png'),
@@ -187,11 +188,18 @@ export function PrimaryButton({
   return (
     <Pressable
       disabled={disabled}
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.primaryButton,
         disabled && { opacity: 0.5 },
-        pressed && !disabled && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+        pressed &&
+          !disabled && {
+            transform: [{ translateY: 3 }],
+            borderBottomWidth: 2,
+          },
         style,
       ]}>
       {icon && (
@@ -230,11 +238,17 @@ export function SecondaryButton({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap', 0.95);
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.secondaryButton,
         variant === 'mint' && styles.secondaryButtonMint,
-        pressed && { opacity: 0.85 },
+        pressed && {
+          transform: [{ translateY: 2 }],
+          borderBottomWidth: 1.5,
+        },
         style,
       ]}>
       {icon && (
@@ -366,9 +380,11 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: PenguColors.primaryGreen,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 24,
     borderRadius: 999,
+    borderBottomWidth: 5,
+    borderBottomColor: PenguColors.primaryGreenDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,11 +402,13 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 15,
+    paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 999,
     borderWidth: 1.5,
+    borderBottomWidth: 4,
     borderColor: PenguColors.cardBorder,
+    borderBottomColor: '#CBD5E1',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

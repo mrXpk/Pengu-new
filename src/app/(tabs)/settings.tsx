@@ -60,9 +60,19 @@ export default function SettingsScreen() {
       route: '/settings/help',
     },
     {
-      label: 'Run Onboarding Flow (16 steps)',
+      label: 'Invite Friends & Rewards',
+      emoji: '🎁',
+      route: '/referrals',
+    },
+    {
+      label: 'Run Onboarding Flow (22 steps)',
       emoji: '🧭',
       route: '/onboarding/splash',
+    },
+    {
+      label: '3-Stage Paywall (50% → 70% Offer)',
+      emoji: '💎',
+      route: '/onboarding/paywall',
     },
     {
       label: 'Welcome Back Screen',
@@ -82,7 +92,33 @@ export default function SettingsScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Settings</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 14,
+          }}>
+          <Pressable
+            onPress={() => router.replace('/(tabs)' as any)}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: '#FFFFFF',
+              borderWidth: 1,
+              borderColor: PenguColors.cardBorder,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={PenguColors.navyHeading}
+            />
+          </Pressable>
+          <Text style={[styles.pageTitle, { marginBottom: 0 }]}>Settings</Text>
+        </View>
 
         {/* User Profile Card */}
         <Pressable

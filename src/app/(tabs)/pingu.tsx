@@ -10,12 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedPingu } from '@/components/animated-pingu';
 import {
   CoinBadge,
   MASCOT_IMAGES,
   PrimaryButton,
 } from '@/components/pengu-ui';
-import { Fonts, PenguColors } from '@/constants/theme';
+import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
 import { SHOP_CATALOG, usePenguStore } from '@/store/usePenguStore';
 
 export default function PinguHomeScreen() {
@@ -26,6 +27,9 @@ export default function PinguHomeScreen() {
   const ownedItemIds = usePenguStore((s) => s.ownedItemIds);
   const equippedOutfitId = usePenguStore((s) => s.equippedOutfitId);
   const equippedSceneryId = usePenguStore((s) => s.equippedSceneryId);
+  const themeMode = usePenguStore((s) => s.themeMode);
+  const isObsidian =
+    themeMode === 'dark' || equippedSceneryId === 'penguin-obsidian';
 
   const equippedOutfit = SHOP_CATALOG.find((i) => i.id === equippedOutfitId);
   const equippedScenery = SHOP_CATALOG.find((i) => i.id === equippedSceneryId);
@@ -40,32 +44,69 @@ export default function PinguHomeScreen() {
   const xpNeeded = Math.max(0, 100 - xp);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        isObsidian && { backgroundColor: PenguinObsidianTheme.background },
+      ]}
+      edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.pageTitle}>Pingu’s home</Text>
+          <Text
+            style={[
+              styles.pageTitle,
+              isObsidian && { color: PenguinObsidianTheme.textPrimary },
+            ]}>
+            Pingu’s home
+          </Text>
           <CoinBadge />
         </View>
 
         {/* Level & XP Bar Card */}
-        <View style={styles.levelCard}>
+        <View
+          style={[
+            styles.levelCard,
+            isObsidian && {
+              backgroundColor: PenguinObsidianTheme.card,
+              borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+            },
+          ]}>
           <Text style={{ fontSize: 22 }}>⭐</Text>
-          <Text style={styles.levelLabel}>Level {level}</Text>
+          <Text
+            style={[
+              styles.levelLabel,
+              isObsidian && { color: PenguinObsidianTheme.textPrimary },
+            ]}>
+            Level {level}
+          </Text>
           <View style={styles.xpTrack}>
             <View style={[styles.xpFill, { width: `${Math.min(100, xp)}%` }]} />
           </View>
-          <Text style={styles.xpText}>{xp} / 100 XP</Text>
+          <Text
+            style={[
+              styles.xpText,
+              isObsidian && { color: PenguinObsidianTheme.textPrimary },
+            ]}>
+            {xp} / 100 XP
+          </Text>
         </View>
 
         {/* Cozy Igloo Habitat Stage */}
-        <View style={styles.habitatStage}>
+        <View
+          style={[
+            styles.habitatStage,
+            isObsidian && {
+              backgroundColor: PenguinObsidianTheme.card,
+              borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+            },
+          ]}>
           <Image
             source={MASCOT_IMAGES.arctic}
-            style={styles.habitatBg}
+            style={[styles.habitatBg, isObsidian && { opacity: 0.25 }]}
             contentFit="cover"
           />
           <View style={styles.iglooArch}>
@@ -83,10 +124,11 @@ export default function PinguHomeScreen() {
                   </Text>
                 </View>
               )}
-              <Image
-                source={MASCOT_IMAGES.celebrating}
-                style={styles.penguinHero}
-                contentFit="contain"
+              <AnimatedPingu
+                pose="celebrating"
+                mode="walking"
+                size={142}
+                showEquippedBadges
               />
               <View style={styles.cozyRug} />
             </View>

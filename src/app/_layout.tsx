@@ -52,6 +52,7 @@ export default function RootLayout() {
         <Stack.Screen name="progress/day" />
         <Stack.Screen name="progress/achievements" />
         <Stack.Screen name="shop/index" />
+        <Stack.Screen name="referrals/index" />
         <Stack.Screen
           name="shop/milestone"
           options={{ presentation: 'modal', animation: 'fade' }}

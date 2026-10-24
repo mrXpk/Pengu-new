@@ -46,6 +46,9 @@ export default function HabitFormScreen() {
 
   const existing = habits.find((h) => h.id === id);
 
+  const [habitType, setHabitType] = useState<'build' | 'break'>(
+    existing?.habitType ?? 'build'
+  );
   const [name, setName] = useState(
     existing?.name ?? 'Review one page of notes'
   );
@@ -82,6 +85,7 @@ export default function HabitFormScreen() {
     if (existing) {
       updateHabit(existing.id, {
         name: cleanName,
+        habitType,
         icon,
         minimumAction: minimumAction.trim() || '5 minutes',
         repeatDays: repeatDays.length > 0 ? repeatDays : ['Mon'],
@@ -93,7 +97,8 @@ export default function HabitFormScreen() {
     } else {
       addHabit({
         name: cleanName,
-        category: 'Custom',
+        habitType,
+        category: habitType === 'break' ? 'Break Habit' : 'Custom',
         icon,
         minimumAction: minimumAction.trim() || '5 minutes',
         repeatDays: repeatDays.length > 0 ? repeatDays : ['Mon'],
@@ -133,6 +138,49 @@ export default function HabitFormScreen() {
             style={styles.heroMascot}
             contentFit="contain"
           />
+        </View>
+
+        {/* Build vs. Break Habit Type Selector */}
+        <View style={styles.fieldCard}>
+          <Text style={styles.fieldLabel}>Habit mode</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {(
+              [
+                { id: 'build', label: '✨ Build Good Habit' },
+                { id: 'break', label: '🛡️ Break Bad Habit' },
+              ] as const
+            ).map((mode) => {
+              const active = habitType === mode.id;
+              return (
+                <Pressable
+                  key={mode.id}
+                  onPress={() => {
+                    setHabitType(mode.id);
+                    if (!existing) {
+                      setName(
+                        mode.id === 'break'
+                          ? 'No doomscrolling in bed'
+                          : 'Review one page of notes'
+                      );
+                    }
+                  }}
+                  style={[
+                    styles.dayBox,
+                    { flex: 1, paddingVertical: 12 },
+                    active && styles.dayBoxActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.dayLabel,
+                      { fontSize: 13 },
+                      active && styles.dayLabelActive,
+                    ]}>
+                    {mode.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         {/* Habit Name */}

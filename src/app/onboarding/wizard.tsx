@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedPingu } from '@/components/animated-pingu';
+import { ConfettiBlast } from '@/components/confetti-blast';
 import {
   ArcticFooter,
   MASCOT_IMAGES,
@@ -20,8 +22,30 @@ import {
 } from '@/components/pengu-ui';
 import { Fonts, PenguColors } from '@/constants/theme';
 import { DayOfWeek, usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
-const TOTAL_STEPS = 16;
+const TOTAL_STEPS = 22;
+
+const HABIT_MODE_OPTIONS = [
+  {
+    id: 'both',
+    title: 'Build Good + Break Bad Habits',
+    sub: 'Complete daily steps & quit distractions (Recommended)',
+    emoji: '🔥',
+  },
+  {
+    id: 'build',
+    title: 'Build Positive Daily Habits',
+    sub: 'Start small routines for study, focus & health',
+    emoji: '🌱',
+  },
+  {
+    id: 'break',
+    title: 'Break Bad Habits & Triggers',
+    sub: 'Stop doomscrolling, procrastinating & late nights',
+    emoji: '🛡️',
+  },
+];
 
 const GOAL_OPTIONS = [
   { id: 'Study', label: 'Study', emoji: '📚' },
@@ -72,6 +96,29 @@ const SLIPPING_OPTIONS = [
   { id: 'When progress feels slow', emoji: '🐢' },
 ];
 
+const ADHD_DRAIN_OPTIONS = [
+  {
+    id: 'Doomscrolling social media in bed',
+    sub: 'Losing 1–3 hours of focus daily',
+    emoji: '📱',
+  },
+  {
+    id: 'Task paralysis & overwhelmed starts',
+    sub: 'Knowing what to do, but struggling to start',
+    emoji: '🧊',
+  },
+  {
+    id: 'Jumping between 5 tabs at once',
+    sub: 'Starting tasks without finishing them',
+    emoji: '⚡',
+  },
+  {
+    id: 'Losing motivation after day 3',
+    sub: 'Initial excitement fades without rewards',
+    emoji: '📉',
+  },
+];
+
 const TIME_CHOICES = [
   { id: '2 minutes', subtitle: 'Quickest start', suggested: false },
   { id: '5 minutes', subtitle: 'Easy daily win', suggested: true },
@@ -100,6 +147,13 @@ const STARTER_HABIT_IDEAS = [
   { id: 'Create my own', subtitle: 'Write a custom habit', emoji: '➕', custom: true },
 ];
 
+const BAD_HABIT_OPTIONS = [
+  { id: 'No doomscrolling in bed', sub: 'Put phone away 30m before sleep', emoji: '📵' },
+  { id: 'No procrastinating study blocks', sub: 'Start with a 5m Pingu Sprint', emoji: '⏱️' },
+  { id: 'No sugary soda or junk snacks', sub: 'Swap with water or fruit', emoji: '🥤' },
+  { id: 'No hitting snooze 3 times', sub: 'Feet on floor when alarm rings', emoji: '⏰' },
+];
+
 const SUPPORT_OPTIONS = [
   { id: 'Gentle reminders', emoji: '🔔' },
   { id: 'Clear progress', emoji: '📈' },
@@ -122,8 +176,9 @@ export default function OnboardingWizardScreen() {
 
   const [step, setStep] = useState(1);
 
-  // Answers state matching the 16 screens
+  // Answers state across 22 steps
   const [userName, setUserName] = useState('Pratap');
+  const [habitMode, setHabitMode] = useState<'build' | 'break' | 'both'>('both');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([
     'Study',
     'Focus',
@@ -137,6 +192,9 @@ export default function OnboardingWizardScreen() {
   );
   const [biggestChallenge, setBiggestChallenge] = useState('I get distracted');
   const [slippingMoment, setSlippingMoment] = useState('On busy days');
+  const [adhdDrain, setAdhdDrain] = useState(
+    'Doomscrolling social media in bed'
+  );
   const [dailyMinutes, setDailyMinutes] = useState('5 minutes');
   const [timeOfDay, setTimeOfDay] = useState('Evening');
   const [reminderCue, setReminderCue] = useState('After school or work');
@@ -144,6 +202,9 @@ export default function OnboardingWizardScreen() {
     'Review one page of notes'
   );
   const [customHabitText, setCustomHabitText] = useState('');
+  const [badHabitToBreak, setBadHabitToBreak] = useState(
+    'No doomscrolling in bed'
+  );
   const [repeatDays, setRepeatDays] = useState<DayOfWeek[]>([
     'Mon',
     'Tue',
@@ -157,10 +218,19 @@ export default function OnboardingWizardScreen() {
     'Clear progress',
     'Penguin rewards',
   ]);
-  const [buddyName, setBuddyName] = useState('Classic Pingu');
+  const [buddyName, setBuddyName] = useState('Cozy Pingu');
+  const [themePreference, setThemePreference] = useState<'light' | 'dark'>(
+    'dark'
+  );
+  const [pledgeProgress, setPledgeProgress] = useState(0);
+  const [pledgeSigned, setPledgeSigned] = useState(false);
   const [sampleChecked, setSampleChecked] = useState(true);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleBack = () => {
+    playSound('tap', 0.9);
     if (step > 1) {
       setStep(step - 1);
     } else {
@@ -169,6 +239,7 @@ export default function OnboardingWizardScreen() {
   };
 
   const handleNext = () => {
+    playSound('tap', 1.1);
     if (step < TOTAL_STEPS) {
       setStep(step + 1);
     } else {
@@ -191,15 +262,48 @@ export default function OnboardingWizardScreen() {
         timeOfDay,
         reminderCue,
         firstHabitName: resolvedHabit,
+        badHabitToBreak,
+        habitMode,
         repeatDays,
         supportPrefs,
         buddyName,
+        themePreference,
       });
+      playSound('celebration');
       router.push('/onboarding/paywall' as any);
     }
   };
 
+  const startHoldPledge = () => {
+    if (pledgeSigned) return;
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    holdIntervalRef.current = setInterval(() => {
+      setPledgeProgress((prev) => {
+        const next = prev + 10;
+        playSound('pledgeTick', 1 + next / 120);
+        if (next >= 100) {
+          if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+          setPledgeSigned(true);
+          playSound('celebration');
+          return 100;
+        }
+        return next;
+      });
+    }, 110);
+  };
+
+  const stopHoldPledge = () => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    if (!pledgeSigned) {
+      setPledgeProgress(0);
+    }
+  };
+
   const toggleGoal = (id: string) => {
+    playSound('tap');
     setSelectedGoals((prev) => {
       if (prev.includes(id)) {
         if (prev.length === 1) return prev;
@@ -215,6 +319,7 @@ export default function OnboardingWizardScreen() {
   };
 
   const toggleSupport = (id: string) => {
+    playSound('tap');
     setSupportPrefs((prev) =>
       prev.includes(id)
         ? prev.length > 1
@@ -225,6 +330,7 @@ export default function OnboardingWizardScreen() {
   };
 
   const toggleDay = (d: DayOfWeek) => {
+    playSound('tap');
     setRepeatDays((prev) =>
       prev.includes(d)
         ? prev.length > 1
@@ -237,13 +343,18 @@ export default function OnboardingWizardScreen() {
   const progressPct = Math.round((step / TOTAL_STEPS) * 100);
 
   const getCtaLabel = () => {
-    if (step === 15) return 'Preview my first day';
-    if (step === 16) return 'See my membership options';
+    if (step === 6 || step === 13) return 'Got it, let’s continue';
+    if (step === 21)
+      return pledgeSigned
+        ? 'Pledge Signed! View My Plan'
+        : 'Sign Pledge & Continue';
+    if (step === 22) return 'Unlock My Custom Plan';
     return 'Continue';
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ConfettiBlast visible={step === 22 || pledgeSigned} />
       {/* Top Progress Header */}
       <View style={styles.headerRow}>
         <Pressable onPress={handleBack} style={styles.backBtn} hitSlop={10}>
@@ -278,10 +389,11 @@ export default function OnboardingWizardScreen() {
             </Text>
 
             <View style={styles.mascotCenterWrap}>
-              <Image
-                source={MASCOT_IMAGES.checklist}
-                style={{ width: 220, height: 220 }}
-                contentFit="contain"
+              <AnimatedPingu
+                pose="checklist"
+                mode="breathing"
+                size={195}
+                speechBubble="Hi! Let’s personalize your routine!"
               />
             </View>
 
@@ -296,8 +408,55 @@ export default function OnboardingWizardScreen() {
           </View>
         )}
 
-        {/* STEP 2: Goals Selection (Up to 3) */}
+        {/* STEP 2: Build vs Break Mode */}
         {step === 2 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.title}>
+              How can Pingu help{'\n'}you most right now?
+            </Text>
+            <Text style={styles.subtitle}>
+              We support both building positive habits & breaking bad ones.
+            </Text>
+
+            <View style={styles.verticalList}>
+              {HABIT_MODE_OPTIONS.map((item) => {
+                const selected = habitMode === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      playSound('tap');
+                      setHabitMode(item.id as 'build' | 'break' | 'both');
+                    }}
+                    style={[
+                      styles.rowCard,
+                      selected && styles.gridCardSelected,
+                    ]}>
+                    <Text style={styles.rowEmoji}>{item.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{item.title}</Text>
+                      <Text style={styles.rowSubtitle}>{item.sub}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioRight,
+                        selected && styles.radioRightSelected,
+                      ]}>
+                      {selected && (
+                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <ArcticFooter mascot="waving" height={140} />
+          </View>
+        )}
+
+        {/* STEP 3: Goals Selection (Up to 3) */}
+        {step === 3 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>What would you like{'\n'}to improve?</Text>
             <Text style={styles.subtitle}>
@@ -327,12 +486,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="waving" height={135} />
+            <ArcticFooter mascot="waving" height={130} />
           </View>
         )}
 
-        {/* STEP 3: Top Priority Goal */}
-        {step === 3 && (
+        {/* STEP 4: Top Priority Goal */}
+        {step === 4 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               Which goal matters{'\n'}most right now?
@@ -350,10 +509,13 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setPriorityGoal(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setPriorityGoal(item.id);
+                    }}
                     style={[
                       styles.gridCard,
-                      { minHeight: 165 },
+                      { minHeight: 160 },
                       selected && styles.gridCardSelected,
                     ]}>
                     {selected && (
@@ -361,7 +523,7 @@ export default function OnboardingWizardScreen() {
                         <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                       </View>
                     )}
-                    <Text style={[styles.gridEmoji, { fontSize: 54 }]}>
+                    <Text style={[styles.gridEmoji, { fontSize: 52 }]}>
                       {item.emoji}
                     </Text>
                     <Text style={styles.gridTitle}>{item.label}</Text>
@@ -370,12 +532,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="writing" height={185} />
+            <ArcticFooter mascot="writing" height={170} />
           </View>
         )}
 
-        {/* STEP 4: Progress Vision */}
-        {step === 4 && (
+        {/* STEP 5: Progress Vision */}
+        {step === 5 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               What would progress{'\n'}look like?
@@ -390,7 +552,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setProgressVision(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setProgressVision(item.id);
+                    }}
                     style={[
                       styles.rowCard,
                       selected && styles.gridCardSelected,
@@ -411,12 +576,76 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="waving" height={150} />
+            <ArcticFooter mascot="waving" height={140} />
           </View>
         )}
 
-        {/* STEP 5: Current Routine Check-in */}
-        {step === 5 && (
+        {/* STEP 6: INTERACTIVE VALUE CAROUSEL #1 (Why Willpower Fails vs Pingu Loop) */}
+        {step === 6 && (
+          <View style={styles.stepContainer}>
+            <View style={styles.insightBadge}>
+              <Text style={styles.insightBadgeText}>
+                🧠 HABIT SCIENCE INSIGHT
+              </Text>
+            </View>
+            <Text style={styles.title}>
+              Why 82% of habits fail{'\n'}without a buddy
+            </Text>
+            <Text style={styles.subtitle}>
+              Willpower runs out on tired days. Pingu uses tiny dopamine loops
+              so showing up feels effortless.
+            </Text>
+
+            {/* Comparison Graph Card */}
+            <View style={styles.graphCard}>
+              <View style={styles.graphBarGroup}>
+                <View style={styles.graphLabelRow}>
+                  <Text style={styles.graphLabel}>
+                    🐧 With PenguTask Buddy Loop
+                  </Text>
+                  <Text style={styles.graphPctGreen}>3.4x Higher</Text>
+                </View>
+                <View style={styles.graphTrack}>
+                  <View
+                    style={[
+                      styles.graphFill,
+                      { width: '88%', backgroundColor: '#10B981' },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.graphBarGroup}>
+                <View style={styles.graphLabelRow}>
+                  <Text style={styles.graphLabel}>
+                    😓 Going Alone on Willpower
+                  </Text>
+                  <Text style={styles.graphPctGray}>18% Stick</Text>
+                </View>
+                <View style={styles.graphTrack}>
+                  <View
+                    style={[
+                      styles.graphFill,
+                      { width: '24%', backgroundColor: '#94A3B8' },
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.mascotCenterWrap}>
+              <AnimatedPingu
+                pose="celebrating"
+                mode="celebrating"
+                size={155}
+                speechBubble="Small steps + daily rewards = unstoppable!"
+              />
+            </View>
+          </View>
+        )}
+
+        {/* STEP 7: Current Routine Check-in */}
+        {step === 7 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>How is your routine{'\n'}today?</Text>
             <Text style={styles.subtitle}>There’s no wrong place to start.</Text>
@@ -427,7 +656,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setRoutineStatus(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setRoutineStatus(item.id);
+                    }}
                     style={[
                       styles.rowCard,
                       selected && styles.gridCardSelected,
@@ -451,12 +683,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="waving" height={160} />
+            <ArcticFooter mascot="waving" height={150} />
           </View>
         )}
 
-        {/* STEP 6: Biggest Challenge */}
-        {step === 6 && (
+        {/* STEP 8: Biggest Challenge */}
+        {step === 8 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               What usually gets{'\n'}in the way?
@@ -469,7 +701,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setBiggestChallenge(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setBiggestChallenge(item.id);
+                    }}
                     style={[
                       styles.rowCard,
                       selected && styles.gridCardSelected,
@@ -488,12 +723,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="encouraging" height={135} />
+            <ArcticFooter mascot="encouraging" height={130} />
           </View>
         )}
 
-        {/* STEP 7: Slipping Moments */}
-        {step === 7 && (
+        {/* STEP 9: Slipping Moments */}
+        {step === 9 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>When do your{'\n'}habits slip?</Text>
             <Text style={styles.subtitle}>
@@ -506,7 +741,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setSlippingMoment(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setSlippingMoment(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       selected && styles.gridCardSelected,
@@ -523,12 +761,57 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="waving" height={155} />
+            <ArcticFooter mascot="waving" height={145} />
           </View>
         )}
 
-        {/* STEP 8: Daily Time Choices */}
-        {step === 8 && (
+        {/* STEP 10: ADHD Focus & Energy Drain */}
+        {step === 10 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.title}>
+              Which focus trap{'\n'}sounds most familiar?
+            </Text>
+            <Text style={styles.subtitle}>
+              Pingu’s ADHD Body-Doubling studio is built to counter this.
+            </Text>
+
+            <View style={styles.verticalList}>
+              {ADHD_DRAIN_OPTIONS.map((item) => {
+                const selected = adhdDrain === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      playSound('tap');
+                      setAdhdDrain(item.id);
+                    }}
+                    style={[
+                      styles.rowCard,
+                      selected && styles.gridCardSelected,
+                    ]}>
+                    <Text style={styles.rowEmoji}>{item.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{item.id}</Text>
+                      <Text style={styles.rowSubtitle}>{item.sub}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioRight,
+                        selected && styles.radioRightSelected,
+                      ]}>
+                      {selected && (
+                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* STEP 11: Daily Time Choices */}
+        {step === 11 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               How much time{'\n'}feels realistic?
@@ -543,7 +826,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setDailyMinutes(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setDailyMinutes(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       selected && styles.gridCardSelected,
@@ -566,23 +852,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <View style={styles.infoNoteRow}>
-              <Ionicons
-                name="information-circle"
-                size={18}
-                color={PenguColors.primaryGreen}
-              />
-              <Text style={styles.infoNoteText}>
-                You can adjust this anytime.
-              </Text>
-            </View>
-
-            <ArcticFooter mascot="waving" height={140} />
+            <ArcticFooter mascot="waving" height={135} />
           </View>
         )}
 
-        {/* STEP 9: Time of Day */}
-        {step === 9 && (
+        {/* STEP 12: Time of Day */}
+        {step === 12 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>When could your{'\n'}habit fit?</Text>
             <Text style={styles.subtitle}>
@@ -595,7 +870,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setTimeOfDay(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setTimeOfDay(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       selected && styles.gridCardSelected,
@@ -613,12 +891,100 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="sleeping" height={150} />
+            <ArcticFooter mascot="sleeping" height={140} />
           </View>
         )}
 
-        {/* STEP 10: Habit Reminder Cue */}
-        {step === 10 && (
+        {/* STEP 13: INTERACTIVE VALUE CAROUSEL #2 (Your Toolkit: Focus Studio + Co-Op Streaks) */}
+        {step === 13 && (
+          <View style={styles.stepContainer}>
+            <View style={styles.insightBadge}>
+              <Text style={styles.insightBadgeText}>
+                ✨ YOUR PENGUTASK SUPERPOWERS
+              </Text>
+            </View>
+            <Text style={styles.title}>
+              3 tools that make{'\n'}consistency automatic
+            </Text>
+            <Text style={styles.subtitle}>
+              Tap through the cards below to preview how Pingu keeps you going.
+            </Text>
+
+            <View style={styles.carouselTabs}>
+              {[
+                { idx: 0, label: '⏱️ ADHD Focus' },
+                { idx: 1, label: '🤝 Buddy Streaks' },
+                { idx: 2, label: '🧊 Ice Shields' },
+              ].map((c) => (
+                <Pressable
+                  key={c.idx}
+                  onPress={() => {
+                    playSound('tap');
+                    setCarouselIndex(c.idx);
+                  }}
+                  style={[
+                    styles.carouselTabPill,
+                    carouselIndex === c.idx && styles.carouselTabPillActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.carouselTabText,
+                      carouselIndex === c.idx && styles.carouselTabTextActive,
+                    ]}>
+                    {c.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.carouselFeatureCard}>
+              {carouselIndex === 0 && (
+                <>
+                  <AnimatedPingu pose="writing" mode="focus" size={130} />
+                  <Text style={styles.carouselFeatureTitle}>
+                    ADHD Body-Doubling Focus Timer
+                  </Text>
+                  <Text style={styles.carouselFeatureSub}>
+                    Start a 5m or 25m sprint with Cozy Rain or Brown Noise while
+                    Pingu studies right beside you for 2x XP!
+                  </Text>
+                </>
+              )}
+              {carouselIndex === 1 && (
+                <>
+                  <AnimatedPingu
+                    pose="celebrating"
+                    mode="celebrating"
+                    size={130}
+                  />
+                  <Text style={styles.carouselFeatureTitle}>
+                    Shared Co-Op Buddy Streaks
+                  </Text>
+                  <Text style={styles.carouselFeatureSub}>
+                    Pair up with friends on shared habits, cheer on the live
+                    community feed, and nudge your partner so neither of you
+                    slips!
+                  </Text>
+                </>
+              )}
+              {carouselIndex === 2 && (
+                <>
+                  <AnimatedPingu pose="encouraging" mode="walking" size={130} />
+                  <Text style={styles.carouselFeatureTitle}>
+                    Streak Ice Shields & Mystery Chests
+                  </Text>
+                  <Text style={styles.carouselFeatureSub}>
+                    Crack open daily Mystery Ice Chests for coins, outfits &
+                    Ice Shields that protect your streak if life gets busy.
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* STEP 14: Habit Reminder Cue */}
+        {step === 14 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               What could remind{'\n'}you to start?
@@ -633,7 +999,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setReminderCue(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setReminderCue(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       selected && styles.gridCardSelected,
@@ -656,15 +1025,15 @@ export default function OnboardingWizardScreen() {
               </Text>
             </View>
 
-            <ArcticFooter mascot="waving" height={140} />
+            <ArcticFooter mascot="waving" height={130} />
           </View>
         )}
 
-        {/* STEP 11: Choose Your First Small Habit */}
-        {step === 11 && (
+        {/* STEP 15: Choose Your First Small Good Habit */}
+        {step === 15 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
-              Choose your first{'\n'}small habit
+              Choose your first{'\n'}habit to build
             </Text>
             <Text style={styles.subtitle}>
               A few ideas for your {priorityGoal.toLowerCase()} goal.
@@ -676,7 +1045,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setFirstHabitName(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setFirstHabitName(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       item.custom && styles.dashedCard,
@@ -707,13 +1079,56 @@ export default function OnboardingWizardScreen() {
                 />
               </View>
             )}
-
-            <ArcticFooter mascot="writing" height={140} />
           </View>
         )}
 
-        {/* STEP 12: Schedule & Reminder Setup */}
-        {step === 12 && (
+        {/* STEP 16: Choose a Bad Habit to Break */}
+        {step === 16 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.title}>
+              Which bad habit{'\n'}shall we break?
+            </Text>
+            <Text style={styles.subtitle}>
+              We’ll track your clean-streak hours & reward you for resisting!
+            </Text>
+
+            <View style={styles.verticalList}>
+              {BAD_HABIT_OPTIONS.map((item) => {
+                const selected = badHabitToBreak === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      playSound('tap');
+                      setBadHabitToBreak(item.id);
+                    }}
+                    style={[
+                      styles.rowCard,
+                      selected && styles.gridCardSelected,
+                    ]}>
+                    <Text style={styles.rowEmoji}>{item.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{item.id}</Text>
+                      <Text style={styles.rowSubtitle}>{item.sub}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioRight,
+                        selected && styles.radioRightSelected,
+                      ]}>
+                      {selected && (
+                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* STEP 17: Schedule & Reminder Setup */}
+        {step === 17 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>Which days work{'\n'}best?</Text>
             <Text style={styles.subtitle}>
@@ -734,7 +1149,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={p.label}
-                    onPress={() => setRepeatDays(p.days)}
+                    onPress={() => {
+                      playSound('tap');
+                      setRepeatDays(p.days);
+                    }}
                     style={[
                       styles.presetPill,
                       isMatch && styles.presetPillActive,
@@ -791,12 +1209,12 @@ export default function OnboardingWizardScreen() {
               />
             </View>
 
-            <ArcticFooter mascot="checklist" height={160} />
+            <ArcticFooter mascot="checklist" height={150} />
           </View>
         )}
 
-        {/* STEP 13: Support Preferences */}
-        {step === 13 && (
+        {/* STEP 18: Support Preferences */}
+        {step === 18 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>
               What support would{'\n'}help most?
@@ -826,12 +1244,12 @@ export default function OnboardingWizardScreen() {
               })}
             </View>
 
-            <ArcticFooter mascot="encouraging" height={155} />
+            <ArcticFooter mascot="encouraging" height={145} />
           </View>
         )}
 
-        {/* STEP 14: Meet Your Habit Buddy */}
-        {step === 14 && (
+        {/* STEP 19: Meet Your Habit Buddy */}
+        {step === 19 && (
           <View style={styles.stepContainer}>
             <Text style={styles.title}>Meet your habit buddy</Text>
             <Text style={styles.subtitle}>
@@ -844,7 +1262,10 @@ export default function OnboardingWizardScreen() {
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => setBuddyName(item.id)}
+                    onPress={() => {
+                      playSound('tap');
+                      setBuddyName(item.id);
+                    }}
                     style={[
                       styles.gridCard,
                       selected && styles.gridCardSelected,
@@ -856,7 +1277,7 @@ export default function OnboardingWizardScreen() {
                     )}
                     <Image
                       source={item.img}
-                      style={{ width: 96, height: 96 }}
+                      style={{ width: 92, height: 92 }}
                       contentFit="contain"
                     />
                     <Text style={styles.gridTitle}>{item.id}</Text>
@@ -868,106 +1289,163 @@ export default function OnboardingWizardScreen() {
             <Text style={styles.centerCaption}>
               Earn companion rewards by completing habits.
             </Text>
-
-            <ArcticFooter mascot="waving" height={135} />
           </View>
         )}
 
-        {/* STEP 15: Personal Plan Preview */}
-        {step === 15 && (
+        {/* STEP 20: Choose Your Aesthetic (Arctic Iceberg vs. Penguin Obsidian Dark) */}
+        {step === 20 && (
           <View style={styles.stepContainer}>
+            <Text style={styles.title}>
+              Choose your{'\n'}app aesthetic
+            </Text>
+            <Text style={styles.subtitle}>
+              Try our signature Penguin Obsidian plumage dark theme or crisp
+              Arctic Day.
+            </Text>
+
+            <View style={styles.verticalList}>
+              <Pressable
+                onPress={() => {
+                  playSound('tap');
+                  setThemePreference('dark');
+                }}
+                style={[
+                  styles.themePreviewCard,
+                  { backgroundColor: '#09111E', borderColor: '#38BDF8' },
+                  themePreference === 'dark' && {
+                    borderWidth: 3,
+                    borderColor: '#10B981',
+                  },
+                ]}>
+                <Text style={{ fontSize: 38 }}>🐧🌌</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: '#FFFFFF' }]}>
+                    Penguin Obsidian (Dark Plumage)
+                  </Text>
+                  <Text style={[styles.rowSubtitle, { color: '#94A3B8' }]}>
+                    Velvet midnight feather coat + tuxedo belly borders & beak
+                    gold
+                  </Text>
+                </View>
+                {themePreference === 'dark' && (
+                  <View style={styles.radioRightSelected}>
+                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                  </View>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  playSound('tap');
+                  setThemePreference('light');
+                }}
+                style={[
+                  styles.themePreviewCard,
+                  { backgroundColor: '#FFFFFF', borderColor: '#BAE6FD' },
+                  themePreference === 'light' && styles.gridCardSelected,
+                ]}>
+                <Text style={{ fontSize: 38 }}>🏔️☀️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>Arctic Iceberg (Light)</Text>
+                  <Text style={styles.rowSubtitle}>
+                    Warm sunlit snow, pastel sky blues & fresh mint cards
+                  </Text>
+                </View>
+                {themePreference === 'light' && (
+                  <View style={styles.radioRightSelected}>
+                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                  </View>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* STEP 21: Interactive Flipper Commitment Pledge */}
+        {step === 21 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.title}>
+              Seal your pact{'\n'}with {buddyName}
+            </Text>
+            <Text style={styles.subtitle}>
+              Press & hold the button below for 1 second to sign your daily
+              small-step pledge.
+            </Text>
+
+            <View style={styles.pledgeCard}>
+              <AnimatedPingu
+                pose={pledgeSigned ? 'celebrating' : 'waving'}
+                mode={pledgeSigned ? 'celebrating' : 'breathing'}
+                size={150}
+                speechBubble={
+                  pledgeSigned
+                    ? '🎉 Pact sealed! We’re official partners!'
+                    : '“I promise to show up for 1 small step each day!”'
+                }
+              />
+
+              <Text style={styles.pledgeQuote}>
+                “I, {userName.trim() || 'Pratap'}, commit to taking one small
+                step every day and forgiving myself quickly if I miss a day.”
+              </Text>
+
+              <Pressable
+                onPressIn={startHoldPledge}
+                onPressOut={stopHoldPledge}
+                onPress={() => {
+                  if (!pledgeSigned) {
+                    setPledgeProgress(100);
+                    setPledgeSigned(true);
+                    playSound('celebration');
+                  }
+                }}
+                style={[
+                  styles.holdFlipperBtn,
+                  pledgeSigned && styles.holdFlipperBtnDone,
+                ]}>
+                <View
+                  style={[
+                    styles.holdFillBar,
+                    { width: `${pledgeProgress}%` },
+                  ]}
+                />
+                <Text style={styles.holdFlipperText}>
+                  {pledgeSigned
+                    ? '✅ Flipper Pact Signed!'
+                    : `🐧 Hold or Tap to Sign (${pledgeProgress}%)`}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* STEP 22: Personal Plan Preview & Sample Check-in Celebration */}
+        {step === 22 && (
+          <View style={styles.stepContainer}>
+            <View style={styles.sampleBadge}>
+              <Text style={styles.sampleBadgeText}>
+                🎉 100% CUSTOM PLAN READY
+              </Text>
+            </View>
             <Text style={styles.title}>
               Your small-step plan,{'\n'}
               {userName.trim() || 'Pratap'}
             </Text>
-            <Text style={styles.subtitle}>Built around your answers.</Text>
-
-            <ArcticFooter mascot="writing" height={155} />
-
-            <View style={styles.planSummaryCard}>
-              <View style={styles.planRow}>
-                <Text style={styles.planEmoji}>📘</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planLabel}>Habit</Text>
-                  <Text style={styles.planValue}>
-                    {firstHabitName === 'Create my own' && customHabitText
-                      ? customHabitText
-                      : firstHabitName}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.planDivider} />
-              <View style={styles.planRow}>
-                <Text style={styles.planEmoji}>⏰</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planLabel}>When</Text>
-                  <Text style={styles.planValue}>{reminderCue}</Text>
-                </View>
-              </View>
-              <View style={styles.planDivider} />
-              <View style={styles.planRow}>
-                <Text style={styles.planEmoji}>📅</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planLabel}>Schedule</Text>
-                  <Text style={styles.planValue}>
-                    {repeatDays.length === 7
-                      ? 'Every day'
-                      : repeatDays.length === 5
-                      ? 'Weekdays'
-                      : `${repeatDays.length} days/wk`}{' '}
-                    • About {dailyMinutes}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.planDivider} />
-              <View style={styles.planRow}>
-                <Text style={styles.planEmoji}>🎁</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planLabel}>Support</Text>
-                  <Text style={styles.planValue}>
-                    {supportPrefs.join(', ')}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.missDayCard}>
-              <Text style={{ fontSize: 24 }}>🌱</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.missDayTitle}>If you miss a day</Text>
-                <Text style={styles.missDaySub}>
-                  Start again at your next planned session.
-                </Text>
-              </View>
-            </View>
-
-            <Pressable onPress={() => setStep(11)} style={styles.editPlanBtn}>
-              <Text style={styles.editPlanText}>Edit my plan</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* STEP 16: First Check-in Celebration Preview */}
-        {step === 16 && (
-          <View style={styles.stepContainer}>
-            <Text style={styles.title}>
-              One small step{'\n'}feels good
-            </Text>
             <Text style={styles.subtitle}>
-              Here’s a preview of your first check-in.
+              Built around your 21 answers. Tap your first habit below to test a
+              check-in!
             </Text>
-
-            <View style={styles.sampleBadge}>
-              <Text style={styles.sampleBadgeText}>Sample check-in</Text>
-            </View>
 
             <Pressable
-              onPress={() => setSampleChecked(!sampleChecked)}
+              onPress={() => {
+                playSound('checkin');
+                setSampleChecked(!sampleChecked);
+              }}
               style={[
                 styles.sampleHabitCard,
                 sampleChecked && styles.gridCardSelected,
               ]}>
-              <Text style={{ fontSize: 34 }}>📘</Text>
+              <Text style={{ fontSize: 32 }}>📘</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>
                   {firstHabitName === 'Create my own' && customHabitText
@@ -989,22 +1467,42 @@ export default function OnboardingWizardScreen() {
               </View>
             </Pressable>
 
+            <View style={styles.planSummaryCard}>
+              <View style={styles.planRow}>
+                <Text style={styles.planEmoji}>🛡️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planLabel}>Habit to Break</Text>
+                  <Text style={styles.planValue}>{badHabitToBreak}</Text>
+                </View>
+              </View>
+              <View style={styles.planDivider} />
+              <View style={styles.planRow}>
+                <Text style={styles.planEmoji}>🐧</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planLabel}>Companion & Theme</Text>
+                  <Text style={styles.planValue}>
+                    {buddyName} •{' '}
+                    {themePreference === 'dark'
+                      ? 'Penguin Obsidian'
+                      : 'Arctic Day'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             <View style={styles.celebrationStage}>
               <Image
                 source={MASCOT_IMAGES.arctic}
                 style={styles.stageBg}
                 contentFit="cover"
               />
-              <Image
-                source={MASCOT_IMAGES.celebrating}
-                style={{ width: 225, height: 225 }}
-                contentFit="contain"
+              <AnimatedPingu
+                pose="celebrating"
+                mode="celebrating"
+                size={175}
+                speechBubble="Let’s unlock your routine!"
               />
             </View>
-
-            <Text style={styles.centerCaption}>
-              Check off your habit each day to build momentum.
-            </Text>
           </View>
         )}
       </ScrollView>
@@ -1017,11 +1515,6 @@ export default function OnboardingWizardScreen() {
           onPress={handleNext}
           style={{ width: '100%' }}
         />
-        {step === 1 && (
-          <Pressable onPress={handleNext} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip for now</Text>
-          </Pressable>
-        )}
       </View>
     </SafeAreaView>
   );
@@ -1060,10 +1553,10 @@ const styles = StyleSheet.create({
   },
   stepCounter: {
     fontFamily: Fonts?.rounded,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: PenguColors.navyHeading,
-    minWidth: 42,
+    minWidth: 46,
     textAlign: 'right',
   },
   scroll: {
@@ -1079,24 +1572,24 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: Fonts?.rounded,
-    fontSize: 31,
+    fontSize: 30,
     fontWeight: '900',
     color: PenguColors.navyHeading,
     textAlign: 'center',
-    lineHeight: 37,
+    lineHeight: 36,
   },
   subtitle: {
     fontFamily: Fonts?.sans,
-    fontSize: 16,
+    fontSize: 15,
     color: PenguColors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   mascotCenterWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 16,
+    marginVertical: 14,
   },
   inputLabel: {
     fontFamily: Fonts?.rounded,
@@ -1126,14 +1619,16 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    padding: 16,
-    minHeight: 138,
+    padding: 15,
+    minHeight: 132,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
+    borderBottomWidth: 4,
     borderColor: PenguColors.cardBorder,
+    borderBottomColor: '#CBD5E1',
     position: 'relative',
-    gap: 6,
+    gap: 5,
   },
   dashedCard: {
     borderStyle: 'dashed',
@@ -1143,6 +1638,7 @@ const styles = StyleSheet.create({
   gridCardSelected: {
     backgroundColor: PenguColors.surfaceMint,
     borderColor: PenguColors.primaryGreen,
+    borderBottomColor: PenguColors.primaryGreenDark,
   },
   cornerCheck: {
     position: 'absolute',
@@ -1168,18 +1664,18 @@ const styles = StyleSheet.create({
     color: PenguColors.primaryGreenDark,
   },
   gridEmoji: {
-    fontSize: 40,
+    fontSize: 38,
   },
   gridTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: PenguColors.navyHeading,
     textAlign: 'center',
   },
   gridSub: {
     fontFamily: Fonts?.sans,
-    fontSize: 13,
+    fontSize: 12,
     color: PenguColors.textSecondary,
     textAlign: 'center',
   },
@@ -1189,21 +1685,22 @@ const styles = StyleSheet.create({
   rowCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderWidth: 2,
+    borderBottomWidth: 4,
     borderColor: PenguColors.cardBorder,
+    borderBottomColor: '#CBD5E1',
   },
   rowEmoji: {
-    fontSize: 32,
+    fontSize: 30,
   },
   rowTitle: {
-    flex: 1,
     fontFamily: Fonts?.rounded,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: PenguColors.navyHeading,
   },
@@ -1223,8 +1720,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioRightSelected: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: PenguColors.primaryGreen,
     borderColor: PenguColors.primaryGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   radioLeft: {
     width: 28,
@@ -1245,17 +1747,115 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#FFFFFF',
   },
-  infoNoteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 14,
+  insightBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 8,
   },
-  infoNoteText: {
+  insightBadgeText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#0284C7',
+    letterSpacing: 0.5,
+  },
+  graphCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+    gap: 16,
+    borderWidth: 1.5,
+    borderColor: PenguColors.cardBorder,
+  },
+  graphBarGroup: {
+    gap: 6,
+  },
+  graphLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  graphLabel: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 14,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
+  },
+  graphPctGreen: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#10B981',
+  },
+  graphPctGray: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  graphTrack: {
+    width: '100%',
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    overflow: 'hidden',
+  },
+  graphFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  carouselTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  carouselTabPill: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: PenguColors.cardBorder,
+    alignItems: 'center',
+  },
+  carouselTabPillActive: {
+    backgroundColor: PenguColors.primaryGreen,
+    borderColor: PenguColors.primaryGreen,
+  },
+  carouselTabText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 12,
+    fontWeight: '800',
+    color: PenguColors.textSecondary,
+  },
+  carouselTabTextActive: {
+    color: '#FFFFFF',
+  },
+  carouselFeatureCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    padding: 22,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: PenguColors.mintBorder,
+    gap: 10,
+  },
+  carouselFeatureTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 20,
+    fontWeight: '900',
+    color: PenguColors.navyHeading,
+    textAlign: 'center',
+  },
+  carouselFeatureSub: {
     fontFamily: Fonts?.sans,
     fontSize: 14,
     color: PenguColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   speechMini: {
     alignSelf: 'center',
@@ -1344,73 +1944,91 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
   },
-  planSummaryCard: {
-    backgroundColor: '#FFFFFF',
+  themePreviewCard: {
     borderRadius: 24,
     padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 2,
+  },
+  pledgeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 22,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: PenguColors.mintBorder,
+    gap: 16,
+  },
+  pledgeQuote: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 16,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
+    textAlign: 'center',
+    lineHeight: 23,
+    fontStyle: 'italic',
+  },
+  holdFlipperBtn: {
+    width: '100%',
+    height: 58,
+    borderRadius: 999,
+    backgroundColor: '#091E42',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  holdFlipperBtnDone: {
+    backgroundColor: PenguColors.primaryGreen,
+  },
+  holdFillBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#10B981',
+  },
+  holdFlipperText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    zIndex: 5,
+  },
+  planSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 16,
     borderWidth: 1.5,
     borderColor: PenguColors.cardBorder,
-    marginTop: 6,
+    marginBottom: 14,
   },
   planRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: 8,
+    gap: 12,
+    paddingVertical: 6,
   },
   planEmoji: {
-    fontSize: 28,
+    fontSize: 26,
   },
   planLabel: {
     fontFamily: Fonts?.sans,
-    fontSize: 13,
+    fontSize: 12,
     color: PenguColors.textSecondary,
   },
   planValue: {
     fontFamily: Fonts?.rounded,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: PenguColors.navyHeading,
-    marginTop: 2,
   },
   planDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
     marginVertical: 4,
-  },
-  missDayCard: {
-    backgroundColor: PenguColors.surfaceMint,
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: PenguColors.mintBorder,
-    marginTop: 12,
-  },
-  missDayTitle: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 15,
-    fontWeight: '800',
-    color: PenguColors.navyHeading,
-  },
-  missDaySub: {
-    fontFamily: Fonts?.sans,
-    fontSize: 13,
-    color: PenguColors.textSecondary,
-    marginTop: 2,
-  },
-  editPlanBtn: {
-    alignSelf: 'center',
-    marginTop: 12,
-    paddingVertical: 6,
-  },
-  editPlanText: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 15,
-    fontWeight: '800',
-    color: PenguColors.textSecondary,
   },
   sampleBadge: {
     alignSelf: 'center',
@@ -1418,28 +2036,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 5,
     borderRadius: 999,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sampleBadgeText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
     color: PenguColors.primaryGreenDark,
   },
   sampleHabitCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 16,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderWidth: 2,
     borderColor: PenguColors.cardBorder,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   celebrationStage: {
     width: '100%',
-    height: 235,
+    height: 185,
     borderRadius: 26,
     overflow: 'hidden',
     alignItems: 'center',
@@ -1454,16 +2072,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: '#FAF9F5',
-  },
-  skipBtn: {
-    alignSelf: 'center',
-    marginTop: 12,
-    paddingVertical: 4,
-  },
-  skipText: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 16,
-    fontWeight: '700',
-    color: PenguColors.textSecondary,
   },
 });

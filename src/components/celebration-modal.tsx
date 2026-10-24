@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   Pressable,
@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 
+import { AnimatedPingu } from '@/components/animated-pingu';
+import { ConfettiBlast } from '@/components/confetti-blast';
 import {
   HabitIconBadge,
   MASCOT_IMAGES,
@@ -17,6 +19,7 @@ import {
 } from '@/components/pengu-ui';
 import { Fonts, PenguColors } from '@/constants/theme';
 import { getTodayKey, usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
 export function CelebrationModal() {
   const router = useRouter();
@@ -27,14 +30,23 @@ export function CelebrationModal() {
   const toggleHabitToday = usePenguStore((s) => s.toggleHabitToday);
 
   const habit = habits.find((h) => h.id === celebrationHabitId);
-  if (!habit) return null;
 
   const today = getTodayKey();
   const completedToday = completedByDate[today] ?? [];
-  const activeHabits = habits.filter((h) => !h.archived);
+  const activeBuildHabits = habits.filter(
+    (h) => !h.archived && (h.habitType ?? 'build') === 'build'
+  );
   const allCompleted =
-    activeHabits.length > 0 &&
-    activeHabits.every((h) => completedToday.includes(h.id));
+    activeBuildHabits.length > 0 &&
+    activeBuildHabits.every((h) => completedToday.includes(h.id));
+
+  useEffect(() => {
+    if (celebrationHabitId) {
+      playSound(allCompleted ? 'celebration' : 'checkin');
+    }
+  }, [allCompleted, celebrationHabitId]);
+
+  if (!habit) return null;
 
   const handleKeepGoing = () => {
     dismissCelebration();
@@ -55,6 +67,7 @@ export function CelebrationModal() {
       animationType="fade"
       onRequestClose={dismissCelebration}>
       <View style={styles.backdrop}>
+        <ConfettiBlast visible={!!celebrationHabitId} />
         <View style={styles.card}>
           <Pressable onPress={dismissCelebration} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color={PenguColors.textSecondary} />
@@ -66,17 +79,20 @@ export function CelebrationModal() {
               style={styles.stageBg}
               contentFit="cover"
             />
-            <Image
-              source={MASCOT_IMAGES.celebrating}
-              style={styles.mascotImg}
-              contentFit="contain"
+            <AnimatedPingu
+              pose="celebrating"
+              mode="celebrating"
+              size={148}
+              showEquippedBadges
             />
             <View style={styles.checkBadge}>
               <Ionicons name="checkmark" size={26} color="#FFFFFF" />
             </View>
           </View>
 
-          <Text style={styles.title}>Small step, completed!</Text>
+          <Text style={styles.title}>
+            {allCompleted ? '🎉 All Daily Goals Done!' : 'Small step, completed!'}
+          </Text>
 
           <View style={styles.habitBanner}>
             <HabitIconBadge icon={habit.icon} size={44} />
@@ -97,14 +113,20 @@ export function CelebrationModal() {
               <Text style={styles.rewardEmoji}>🪙</Text>
               <Text style={styles.rewardText}>+5 coins</Text>
             </View>
+            <View style={styles.rewardBox}>
+              <Text style={styles.rewardEmoji}>⚡</Text>
+              <Text style={styles.rewardText}>+20%</Text>
+            </View>
           </View>
 
           <Text style={styles.caption}>
-            Reward added once per scheduled check-in.
+            {allCompleted
+              ? '100% Perfect Day! Tap below to blast confetti & open your Mystery Chest!'
+              : 'Pingu’s energy grew! Keep your momentum rolling.'}
           </Text>
 
           <PrimaryButton
-            label={allCompleted ? 'Celebrate perfect day' : 'Keep going'}
+            label={allCompleted ? '🎉 Open Perfect Day Blast!' : 'Keep going'}
             trailingArrow
             onPress={handleKeepGoing}
             style={{ width: '100%', marginTop: 12 }}
@@ -122,14 +144,14 @@ export function CelebrationModal() {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(9, 30, 66, 0.55)',
+    backgroundColor: 'rgba(9, 30, 66, 0.62)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   card: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 385,
     backgroundColor: '#FFFFFF',
     borderRadius: 28,
     padding: 22,
@@ -154,7 +176,7 @@ const styles = StyleSheet.create({
   },
   mascotStage: {
     width: '100%',
-    height: 170,
+    height: 172,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
@@ -165,14 +187,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     opacity: 0.35,
   },
-  mascotImg: {
-    width: 155,
-    height: 155,
-  },
   checkBadge: {
     position: 'absolute',
     right: 68,
-    top: 28,
+    top: 22,
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -184,7 +202,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: Fonts?.rounded,
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: '900',
     color: PenguColors.navyHeading,
     textAlign: 'center',
@@ -220,7 +238,7 @@ const styles = StyleSheet.create({
   rewardsRow: {
     width: '100%',
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginBottom: 10,
   },
   rewardBox: {
@@ -232,15 +250,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PenguColors.cardBorder,
     borderRadius: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 11,
+    gap: 5,
   },
   rewardEmoji: {
-    fontSize: 20,
+    fontSize: 17,
   },
   rewardText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: PenguColors.navyHeading,
   },

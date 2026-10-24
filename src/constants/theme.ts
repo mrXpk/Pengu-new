@@ -34,6 +34,28 @@ export const PenguColors = {
   inactiveDot: '#CBD5E1',
 };
 
+/**
+ * Authentic Emperor Penguin Plumage Dark Theme ("Penguin Obsidian")
+ * Deep velvet-navy/obsidian feather coat, pearlescent tuxedo-belly highlights,
+ * warm emperor-beak amber gold, and glacier-ice cyan accents.
+ */
+export const PenguinObsidianTheme = {
+  background: '#09111E',
+  backgroundElevated: '#0F1B2E',
+  card: '#132238',
+  cardSelected: '#15342B',
+  featherTextureOverlay: 'rgba(56, 189, 248, 0.04)',
+  bellyHighlightBorder: 'rgba(226, 232, 240, 0.13)',
+  mintBorder: '#227A4D',
+  beakGold: '#F59E0B',
+  beakOrange: '#FB923C',
+  glacierCyan: '#38BDF8',
+  auroraEmerald: '#10B981',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  textMuted: '#64748B',
+};
+
 export const Colors = {
   light: {
     text: PenguColors.navyHeading,
@@ -47,15 +69,15 @@ export const Colors = {
     tabIconSelected: PenguColors.primaryGreen,
   },
   dark: {
-    text: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    background: '#0B1528',
-    backgroundElement: '#152238',
-    backgroundSelected: '#163828',
-    tint: '#33A85C',
-    icon: '#94A3B8',
+    text: PenguinObsidianTheme.textPrimary,
+    textSecondary: PenguinObsidianTheme.textSecondary,
+    background: PenguinObsidianTheme.background,
+    backgroundElement: PenguinObsidianTheme.card,
+    backgroundSelected: PenguinObsidianTheme.cardSelected,
+    tint: PenguinObsidianTheme.auroraEmerald,
+    icon: PenguinObsidianTheme.textSecondary,
     tabIconDefault: '#64748B',
-    tabIconSelected: '#33A85C',
+    tabIconSelected: PenguinObsidianTheme.auroraEmerald,
   },
 } as const;
 

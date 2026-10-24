@@ -35,8 +35,6 @@ export default function AppearanceSettingsScreen() {
   const [motionOff, setMotionOff] = useState(reduceMotion);
   const [celebrationsOn, setCelebrationsOn] = useState(celebrationAnimations);
 
-  const forestUnlocked = ownedItemIds.includes('forest-green');
-
   const handleSave = () => {
     updateAppearance({
       themeMode: selectedTheme,
@@ -108,40 +106,32 @@ export default function AppearanceSettingsScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() =>
-              forestUnlocked
-                ? setSelectedScenery('forest-green')
-                : router.push('/shop/forest-green' as any)
-            }
+            onPress={() => {
+              setSelectedScenery('penguin-obsidian');
+              setSelectedTheme('dark');
+            }}
             style={[
               styles.sceneryCard,
-              selectedScenery === 'forest-green' && styles.sceneryCardActive,
+              selectedScenery === 'penguin-obsidian' &&
+                styles.sceneryCardActive,
             ]}>
             <View
               style={[
                 styles.sceneryThumb,
-                { backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' },
+                {
+                  backgroundColor: '#09111E',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
               ]}>
-              <Text style={{ fontSize: 48 }}>🌲🏞️</Text>
-              <View
-                style={[
-                  styles.cornerCheck,
-                  !forestUnlocked && { backgroundColor: '#334155' },
-                ]}>
-                <Ionicons
-                  name={forestUnlocked ? 'checkmark' : 'lock-closed'}
-                  size={14}
-                  color="#FFFFFF"
-                />
-              </View>
+              <Text style={{ fontSize: 44 }}>🐧🌌</Text>
+              {selectedScenery === 'penguin-obsidian' && (
+                <View style={styles.cornerCheck}>
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                </View>
+              )}
             </View>
-            <Text style={styles.sceneryTitle}>Forest Green</Text>
-            {!forestUnlocked && (
-              <View style={styles.unlockShopPill}>
-                <Ionicons name="lock-closed" size={12} color="#334155" />
-                <Text style={styles.unlockShopText}>Unlock in shop</Text>
-              </View>
-            )}
+            <Text style={styles.sceneryTitle}>Penguin Obsidian</Text>
           </Pressable>
         </View>
 

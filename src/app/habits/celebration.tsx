@@ -1,52 +1,156 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedPingu } from '@/components/animated-pingu';
+import { ConfettiBlast } from '@/components/confetti-blast';
 import {
   MASCOT_IMAGES,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/pengu-ui';
 import { Fonts, PenguColors } from '@/constants/theme';
-import { usePenguStore } from '@/store/usePenguStore';
+import { getTodayKey, usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
 export default function PerfectDayCelebrationScreen() {
   const router = useRouter();
   const habits = usePenguStore((s) => s.habits);
-  const activeCount = habits.filter((h) => !h.archived).length || 4;
+  const dailyChestOpenedByDate = usePenguStore((s) => s.dailyChestOpenedByDate);
+  const openDailyMysteryChest = usePenguStore((s) => s.openDailyMysteryChest);
+
+  const today = getTodayKey();
+  const alreadyOpened = !!dailyChestOpenedByDate[today];
+
+  const [blastKey, setBlastKey] = useState(1);
+  const [chestTaps, setChestTaps] = useState(alreadyOpened ? 3 : 0);
+  const [chestOpened, setChestOpened] = useState(alreadyOpened);
+
+  const chestShake = useSharedValue(0);
+  const chestScale = useSharedValue(1);
+
+  const activeCount =
+    habits.filter((h) => !h.archived && (h.habitType ?? 'build') === 'build')
+      .length || 4;
+
+  useEffect(() => {
+    playSound('celebration');
+  }, []);
+
+  const handleChestTap = () => {
+    if (chestOpened) {
+      playSound('celebration');
+      setBlastKey((k) => k + 1);
+      return;
+    }
+
+    const nextTaps = chestTaps + 1;
+    setChestTaps(nextTaps);
+
+    if (nextTaps < 3) {
+      playSound('iceCrack', 1 + nextTaps * 0.15);
+      chestShake.value = withSequence(
+        withTiming(-12, { duration: 45 }),
+        withTiming(12, { duration: 45 }),
+        withTiming(-8, { duration: 45 }),
+        withTiming(0, { duration: 45 })
+      );
+      chestScale.value = withSequence(
+        withSpring(1.16, { damping: 6 }),
+        withSpring(1, { damping: 10 })
+      );
+    } else {
+      playSound('chestOpen');
+      openDailyMysteryChest();
+      setChestOpened(true);
+      setBlastKey((k) => k + 1);
+      chestScale.value = withSequence(
+        withSpring(1.28, { damping: 5 }),
+        withSpring(1, { damping: 8 })
+      );
+    }
+  };
+
+  const chestAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: chestShake.value },
+      { scale: chestScale.value },
+    ],
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ConfettiBlast visible triggerKey={blastKey} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
+        <View style={styles.perfectPill}>
+          <Text style={styles.perfectPillText}>🔥 100% PERFECT DAY BLAST</Text>
+        </View>
+
         <Text style={styles.title}>You showed up{'\n'}today!</Text>
         <Text style={styles.subtitle}>
           All {activeCount} scheduled habits completed.
         </Text>
 
-        {/* Hero Mascot Stage */}
-        <View style={styles.heroStage}>
+        {/* Hero Mascot Stage with Celebrating Pingu */}
+        <Pressable
+          onPress={() => {
+            playSound('celebration');
+            setBlastKey((k) => k + 1);
+          }}
+          style={styles.heroStage}>
           <Image
             source={MASCOT_IMAGES.arctic}
             style={styles.stageBg}
             contentFit="cover"
           />
-          <Image
-            source={MASCOT_IMAGES.checklist}
-            style={styles.heroMascot}
-            contentFit="contain"
+          <AnimatedPingu
+            pose="celebrating"
+            mode="celebrating"
+            size={185}
+            showEquippedBadges
+            speechBubble="Tap me to blast more confetti! 🎉"
           />
-        </View>
+        </Pressable>
+
+        {/* Interactive 3-Tap Daily Mystery Ice Chest */}
+        <Pressable onPress={handleChestTap} style={styles.chestCard}>
+          <Animated.View style={[styles.chestIconWrap, chestAnimStyle]}>
+            <Text style={{ fontSize: 48 }}>
+              {chestOpened ? '🎁' : chestTaps === 0 ? '🧊' : chestTaps === 1 ? '❄️' : '💎'}
+            </Text>
+          </Animated.View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chestTitle}>
+              {chestOpened
+                ? 'Mystery Ice Chest Unlocked!'
+                : `Tap ${3 - chestTaps}x to crack your Ice Chest!`}
+            </Text>
+            <Text style={styles.chestSub}>
+              {chestOpened
+                ? '+50 Coins 🪙 • +30 XP ⭐ • +1 Streak Shield 🧊 claimed!'
+                : 'Earned for completing your daily goal streak.'}
+            </Text>
+          </View>
+        </Pressable>
 
         {/* 100% Stats Card */}
         <View style={styles.statsCard}>
@@ -67,9 +171,9 @@ export default function PerfectDayCelebrationScreen() {
           <View style={styles.verticalDivider} />
 
           <View style={styles.statSide}>
-            <Text style={{ fontSize: 54 }}>⭐</Text>
+            <Text style={{ fontSize: 52 }}>🔥</Text>
             <Text style={styles.statBigValue}>100%</Text>
-            <Text style={styles.statCaption}>completion rate</Text>
+            <Text style={styles.statCaption}>daily score</Text>
           </View>
         </View>
 
@@ -77,36 +181,30 @@ export default function PerfectDayCelebrationScreen() {
         <View style={styles.rewardsBanner}>
           <Text style={{ fontSize: 38 }}>🪙</Text>
           <View style={styles.rewardsInfo}>
-            <Text style={styles.rewardsLabel}>Today’s earned rewards</Text>
+            <Text style={styles.rewardsLabel}>Today’s total haul</Text>
             <Text style={styles.rewardsAmount}>
-              {activeCount * 10} XP <Text style={{ color: '#091E42' }}>•</Text>{' '}
-              {activeCount * 5} coins
+              {activeCount * 10 + (chestOpened ? 30 : 0)} XP{' '}
+              <Text style={{ color: '#091E42' }}>•</Text>{' '}
+              {activeCount * 5 + (chestOpened ? 50 : 0)} coins
             </Text>
           </View>
         </View>
 
         <PrimaryButton
-          label="Back to today"
+          label="🎉 Blast Confetti & Continue"
           trailingArrow
-          onPress={() => router.replace('/(tabs)' as any)}
+          onPress={() => {
+            playSound('celebration');
+            router.replace('/(tabs)' as any);
+          }}
           style={{ marginTop: 6 }}
         />
 
         <SecondaryButton
-          label="Write a reflection"
-          icon="document-text-outline"
-          onPress={() => router.replace('/checkin/mood' as any)}
+          label="Share Streak with Friends"
+          icon="share-social-outline"
+          onPress={() => router.replace('/referrals' as any)}
         />
-
-        {/* Rest Banner */}
-        <View style={styles.restBanner}>
-          <Image
-            source={MASCOT_IMAGES.sleeping}
-            style={styles.sleepingPenguin}
-            contentFit="contain"
-          />
-          <Text style={styles.restText}>Rest is part of progress, too.</Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -122,26 +220,42 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 14,
     paddingBottom: 28,
     gap: 12,
   },
+  perfectPill: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  perfectPillText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#B45309',
+    letterSpacing: 0.6,
+  },
   title: {
     fontFamily: Fonts?.rounded,
-    fontSize: 36,
+    fontSize: 35,
     fontWeight: '900',
     color: PenguColors.navyHeading,
     textAlign: 'center',
-    lineHeight: 42,
+    lineHeight: 40,
   },
   subtitle: {
     fontFamily: Fonts?.sans,
-    fontSize: 17,
-    color: PenguColors.navyHeading,
+    fontSize: 16,
+    color: PenguColors.textSecondary,
     textAlign: 'center',
   },
   heroStage: {
-    height: 210,
+    height: 225,
     borderRadius: 26,
     overflow: 'hidden',
     alignItems: 'center',
@@ -149,16 +263,42 @@ const styles = StyleSheet.create({
   },
   stageBg: {
     ...StyleSheet.absoluteFill,
-    opacity: 0.4,
+    opacity: 0.45,
   },
-  heroMascot: {
-    width: 195,
-    height: 195,
+  chestCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  chestIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chestTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  chestSub: {
+    fontFamily: Fonts?.sans,
+    fontSize: 13,
+    color: '#B45309',
+    marginTop: 3,
   },
   statsCard: {
     backgroundColor: PenguColors.surfaceMint,
     borderRadius: 24,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -171,9 +311,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   greenRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 6,
     borderColor: PenguColors.primaryGreen,
     alignItems: 'center',
@@ -183,24 +323,24 @@ const styles = StyleSheet.create({
   },
   verticalDivider: {
     width: 1,
-    height: 90,
+    height: 85,
     backgroundColor: PenguColors.mintBorder,
   },
   statBigValue: {
     fontFamily: Fonts?.rounded,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
     color: PenguColors.navyHeading,
   },
   statCaption: {
     fontFamily: Fonts?.sans,
-    fontSize: 14,
+    fontSize: 13,
     color: PenguColors.textSecondary,
   },
   rewardsBanner: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 16,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -213,37 +353,14 @@ const styles = StyleSheet.create({
   },
   rewardsLabel: {
     fontFamily: Fonts?.rounded,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: PenguColors.navyHeading,
   },
   rewardsAmount: {
     fontFamily: Fonts?.rounded,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '900',
     color: PenguColors.primaryGreen,
-  },
-  restBanner: {
-    backgroundColor: PenguColors.surfaceIce,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: PenguColors.iceBorder,
-    marginTop: 4,
-  },
-  sleepingPenguin: {
-    width: 58,
-    height: 44,
-  },
-  restText: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 15,
-    fontWeight: '800',
-    color: PenguColors.navyHeading,
   },
 });

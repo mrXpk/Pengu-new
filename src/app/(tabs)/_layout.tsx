@@ -4,24 +4,28 @@ import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Fonts, PenguColors } from '@/constants/theme';
+import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
+import { usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
 function CustomPenguTabBar({
   state,
-  navigateToTab,
 }: {
   state: { index: number; routes: { key: string; name: string }[] };
-  navigateToTab?: (routeKey: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const themeMode = usePenguStore((s) => s.themeMode);
+  const equippedSceneryId = usePenguStore((s) => s.equippedSceneryId);
+  const isObsidian =
+    themeMode === 'dark' || equippedSceneryId === 'penguin-obsidian';
 
   const tabItems = [
     { routeName: 'index', label: 'Home', icon: 'home' as const },
-    { routeName: 'progress', label: 'Progress', icon: 'stats-chart' as const },
+    { routeName: 'focus', label: 'Focus', icon: 'timer' as const },
     { routeName: 'fab', label: 'Add', icon: 'add' as const },
+    { routeName: 'social', label: 'Social', icon: 'people' as const },
     { routeName: 'pingu', label: 'Pingu', icon: 'happy' as const },
-    { routeName: 'settings', label: 'Settings', icon: 'settings-sharp' as const },
   ];
 
   const currentRouteName = state.routes[state.index]?.name ?? 'index';
@@ -30,6 +34,7 @@ function CustomPenguTabBar({
     <View
       style={[
         styles.tabBarContainer,
+        isObsidian && styles.tabBarObsidian,
         { paddingBottom: Math.max(insets.bottom, 10) },
       ]}>
       {tabItems.map((item) => {
@@ -37,10 +42,14 @@ function CustomPenguTabBar({
           return (
             <View key="fab" style={styles.fabWrapper}>
               <Pressable
-                onPress={() => router.push('/habits/form' as any)}
+                onPress={() => {
+                  playSound('tap', 1.15);
+                  router.push('/habits/form' as any);
+                }}
                 style={({ pressed }) => [
                   styles.fabButton,
-                  pressed && { transform: [{ scale: 0.94 }] },
+                  isObsidian && { borderColor: PenguinObsidianTheme.card },
+                  pressed && { transform: [{ scale: 0.92 }] },
                 ]}>
                 <Ionicons name="add" size={34} color="#FFFFFF" />
               </Pressable>
@@ -51,19 +60,13 @@ function CustomPenguTabBar({
         const isFocused = currentRouteName === item.routeName;
 
         const onPress = () => {
-          const route = state.routes.find(
-            (r: { key: string; name: string }) => r.name === item.routeName
+          playSound('tap');
+          if (isFocused) return;
+          router.navigate(
+            (item.routeName === 'index'
+              ? '/(tabs)'
+              : `/(tabs)/${item.routeName}`) as any
           );
-          if (!route || isFocused) return;
-          if (navigateToTab) {
-            navigateToTab(route.key);
-          } else {
-            router.navigate(
-              (item.routeName === 'index'
-                ? '/(tabs)'
-                : `/(tabs)/${item.routeName}`) as any
-            );
-          }
         };
 
         return (
@@ -75,6 +78,7 @@ function CustomPenguTabBar({
               <View
                 style={[
                   styles.pinguIconBubble,
+                  isObsidian && { backgroundColor: '#1E293B' },
                   isFocused && styles.pinguIconBubbleActive,
                 ]}>
                 <Text style={{ fontSize: 17 }}>🐧</Text>
@@ -83,13 +87,21 @@ function CustomPenguTabBar({
               <Ionicons
                 name={item.icon}
                 size={24}
-                color={isFocused ? PenguColors.primaryGreen : '#64748B'}
+                color={
+                  isFocused
+                    ? isObsidian
+                      ? PenguinObsidianTheme.auroraEmerald
+                      : PenguColors.primaryGreen
+                    : '#64748B'
+                }
               />
             )}
             <Text
               style={[
                 styles.tabLabel,
                 isFocused && styles.tabLabelActive,
+                isFocused &&
+                  isObsidian && { color: PenguinObsidianTheme.auroraEmerald },
               ]}>
               {item.label}
             </Text>
@@ -108,9 +120,11 @@ export default function TabsLayout() {
         headerShown: false,
       }}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="progress" />
+      <Tabs.Screen name="focus" />
+      <Tabs.Screen name="social" />
       <Tabs.Screen name="pingu" />
-      <Tabs.Screen name="settings" />
+      <Tabs.Screen name="progress" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -132,6 +146,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 12,
+  },
+  tabBarObsidian: {
+    backgroundColor: PenguinObsidianTheme.card,
+    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
   },
   tabItem: {
     flex: 1,
