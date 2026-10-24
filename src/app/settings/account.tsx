@@ -22,6 +22,9 @@ export default function AccountAndDataScreen() {
   const habits = usePenguStore((s) => s.habits);
   const coins = usePenguStore((s) => s.coins);
   const resetToDemo = usePenguStore((s) => s.resetToDemo);
+  const resetToEmptyFreshStart = usePenguStore(
+    (s) => s.resetToEmptyFreshStart
+  );
 
   const handleExport = () => {
     Alert.alert(
@@ -134,6 +137,31 @@ export default function AccountAndDataScreen() {
               <Ionicons name="refresh" size={20} color="#E11D48" />
             </View>
             <Text style={styles.actionLabel}>Reset demo data</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={PenguColors.textSecondary}
+            />
+          </Pressable>
+
+          <View style={styles.divider} />
+
+          <Pressable
+            onPress={() => {
+              resetToEmptyFreshStart();
+              router.replace('/(tabs)' as any);
+            }}
+            style={styles.actionRow}>
+            <View style={[styles.iconBox, { backgroundColor: '#ECFDF5' }]}>
+              <Ionicons
+                name="sparkles"
+                size={20}
+                color={PenguColors.primaryGreen}
+              />
+            </View>
+            <Text style={styles.actionLabel}>
+              Start fresh (Empty Home state)
+            </Text>
             <Ionicons
               name="chevron-forward"
               size={20}

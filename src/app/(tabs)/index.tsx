@@ -16,9 +16,44 @@ import {
   CoinBadge,
   HabitIconBadge,
   MASCOT_IMAGES,
+  PrimaryButton,
 } from '@/components/pengu-ui';
 import { Fonts, PenguColors } from '@/constants/theme';
-import { getTodayKey, usePenguStore } from '@/store/usePenguStore';
+import {
+  getTodayKey,
+  HabitIconType,
+  usePenguStore,
+} from '@/store/usePenguStore';
+
+const QUICK_START_IDEAS: {
+  name: string;
+  subtitle: string;
+  icon: HabitIconType;
+  category: string;
+  time: string;
+}[] = [
+  {
+    name: 'Read one page',
+    subtitle: 'About 2 minutes',
+    icon: 'book',
+    category: 'Reading',
+    time: '9:00 PM',
+  },
+  {
+    name: 'Drink water',
+    subtitle: '1 glass',
+    icon: 'water',
+    category: 'Water',
+    time: '12:00 PM',
+  },
+  {
+    name: 'Move for 2 minutes',
+    subtitle: 'Stretch or walk',
+    icon: 'shoe',
+    category: 'Movement',
+    time: '6:00 PM',
+  },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -27,6 +62,7 @@ export default function HomeScreen() {
   const completedByDate = usePenguStore((s) => s.completedByDate);
   const moodCheckIns = usePenguStore((s) => s.moodCheckIns);
   const toggleHabitToday = usePenguStore((s) => s.toggleHabitToday);
+  const addHabit = usePenguStore((s) => s.addHabit);
 
   const today = getTodayKey();
   const completedIds = completedByDate[today] ?? [];
@@ -47,6 +83,102 @@ export default function HomeScreen() {
     if (remaining === 2) return 'Two small steps to go.';
     return `${remaining} small steps to go.`;
   };
+
+  // Empty State Dashboard (Matches "Pingu's first habit starts here (1).png")
+  if (activeHabits.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.emptyTopBar}>
+            <CoinBadge />
+            <Pressable
+              onPress={() => router.push('/settings/notifications' as any)}
+              style={styles.bellBtn}>
+              <Ionicons
+                name="notifications"
+                size={22}
+                color="#F59E0B"
+              />
+            </Pressable>
+          </View>
+
+          <Text style={styles.emptyHeroTitle}>
+            Your first small step{'\n'}starts here
+          </Text>
+          <Text style={styles.emptyHeroSub}>
+            Choose one easy habit to begin with Pingu.
+          </Text>
+
+          <View style={styles.emptyMascotStage}>
+            <Image
+              source={MASCOT_IMAGES.arctic}
+              style={styles.heroBg}
+              contentFit="cover"
+            />
+            <Image
+              source={MASCOT_IMAGES.writing}
+              style={{ width: 225, height: 225 }}
+              contentFit="contain"
+            />
+          </View>
+
+          <PrimaryButton
+            label="+ Create your first habit"
+            onPress={() => router.push('/habits/form' as any)}
+            style={{ width: '100%', marginBottom: 22 }}
+          />
+
+          <Text style={styles.quickStartHeader}>
+            Or start with a quick idea
+          </Text>
+          <View style={styles.habitList}>
+            {QUICK_START_IDEAS.map((idea) => (
+              <Pressable
+                key={idea.name}
+                onPress={() =>
+                  addHabit({
+                    name: idea.name,
+                    category: idea.category,
+                    icon: idea.icon,
+                    minimumAction: idea.subtitle,
+                    repeatDays: [
+                      'Mon',
+                      'Tue',
+                      'Wed',
+                      'Thu',
+                      'Fri',
+                      'Sat',
+                      'Sun',
+                    ],
+                    cue: 'Daily routine',
+                    reminderTime: idea.time,
+                    reminderEnabled: true,
+                    notes: '',
+                  })
+                }
+                style={styles.habitCard}>
+                <HabitIconBadge icon={idea.icon} size={52} />
+                <View style={styles.habitInfo}>
+                  <Text style={styles.habitName}>{idea.name}</Text>
+                  <Text style={styles.habitTimeText}>{idea.subtitle}</Text>
+                </View>
+                <View style={styles.quickAddPlus}>
+                  <Ionicons
+                    name="add"
+                    size={22}
+                    color={PenguColors.primaryGreen}
+                  />
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -415,5 +547,63 @@ const styles = StyleSheet.create({
     fontFamily: Fonts?.sans,
     fontSize: 14,
     color: PenguColors.textSecondary,
+  },
+  emptyTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  bellBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: PenguColors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHeroTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 31,
+    fontWeight: '900',
+    color: PenguColors.navyHeading,
+    textAlign: 'center',
+    lineHeight: 37,
+  },
+  emptyHeroSub: {
+    fontFamily: Fonts?.sans,
+    fontSize: 16,
+    color: PenguColors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  emptyMascotStage: {
+    width: '100%',
+    height: 235,
+    borderRadius: 28,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  quickStartHeader: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 19,
+    fontWeight: '900',
+    color: PenguColors.navyHeading,
+    marginBottom: 12,
+  },
+  quickAddPlus: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: PenguColors.surfaceMint,
+    borderWidth: 1.5,
+    borderColor: PenguColors.mintBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

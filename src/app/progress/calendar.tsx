@@ -196,7 +196,7 @@ export default function HabitCalendarScreen() {
             <PrimaryButton
               label="View day"
               trailingArrow
-              onPress={() => router.push('/(tabs)' as any)}
+              onPress={() => router.push('/progress/day' as any)}
               style={styles.viewDayBtn}
             />
           </View>

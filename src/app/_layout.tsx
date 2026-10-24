@@ -17,6 +17,23 @@ export default function RootLayout() {
           animation: 'slide_from_right',
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="onboarding/splash"
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="onboarding/welcome"
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen name="onboarding/wizard" />
+        <Stack.Screen
+          name="onboarding/paywall"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="onboarding/welcome-back"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
         <Stack.Screen name="habits/all" />
         <Stack.Screen
           name="habits/form"
@@ -32,8 +49,13 @@ export default function RootLayout() {
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen name="progress/calendar" />
+        <Stack.Screen name="progress/day" />
         <Stack.Screen name="progress/achievements" />
         <Stack.Screen name="shop/index" />
+        <Stack.Screen
+          name="shop/milestone"
+          options={{ presentation: 'modal', animation: 'fade' }}
+        />
         <Stack.Screen
           name="shop/[itemId]"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

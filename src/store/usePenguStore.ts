@@ -64,6 +64,23 @@ export interface NotificationSettings {
   quietHoursRange: string;
 }
 
+export interface OnboardingPlan {
+  userName: string;
+  goals: string[];
+  priorityGoal: string;
+  progressVision: string;
+  routineStatus: string;
+  biggestChallenge: string;
+  slippingMoment: string;
+  dailyMinutes: string;
+  timeOfDay: string;
+  reminderCue: string;
+  firstHabitName: string;
+  repeatDays: DayOfWeek[];
+  supportPrefs: string[];
+  buddyName: string;
+}
+
 export const SHOP_CATALOG: ShopItem[] = [
   {
     id: 'cozy-scarf',
@@ -304,6 +321,10 @@ interface PenguState {
   }) => void;
   setSoundAndVibration: (enabled: boolean) => void;
   updateNotifications: (updates: Partial<NotificationSettings>) => void;
+  setPremiumStatus: (isPremium: boolean) => void;
+  unlockAndEquipMilestone: (itemId: string) => void;
+  completeOnboarding: (plan: OnboardingPlan) => void;
+  resetToEmptyFreshStart: () => void;
   resetToDemo: () => void;
 }
 
@@ -520,6 +541,87 @@ export const usePenguStore = create<PenguState>()(
         set((state) => ({
           notifications: { ...state.notifications, ...updates },
         })),
+
+      setPremiumStatus: (isPremium) => set({ isPremium }),
+
+      unlockAndEquipMilestone: (itemId) => {
+        const state = get();
+        const item = SHOP_CATALOG.find((i) => i.id === itemId);
+        const nextOwned = state.ownedItemIds.includes(itemId)
+          ? state.ownedItemIds
+          : [...state.ownedItemIds, itemId];
+        const updates: Partial<PenguState> = {
+          ownedItemIds: nextOwned,
+          milestoneUnlockedItemId: null,
+        };
+        if (item?.category === 'Outfits') {
+          updates.equippedOutfitId = itemId;
+        } else if (item?.category === 'Accessories') {
+          updates.equippedAccessoryId = itemId;
+        } else if (item?.category === 'Scenery') {
+          updates.equippedSceneryId = itemId;
+        }
+        set(updates);
+      },
+
+      completeOnboarding: (plan) => {
+        const state = get();
+        const iconMap: Record<string, HabitIconType> = {
+          Study: 'books',
+          Fitness: 'dumbbell',
+          Sleep: 'moon',
+          Focus: 'bulb',
+          Wellbeing: 'heart',
+          'Daily routine': 'calendar',
+        };
+        const chosenIcon = iconMap[plan.priorityGoal] ?? 'books';
+        const starterHabit: Habit = {
+          id: `habit-${Date.now()}`,
+          name: plan.firstHabitName || 'Review one page of notes',
+          category: plan.priorityGoal || 'Study',
+          icon: chosenIcon,
+          minimumAction: `About ${plan.dailyMinutes || '5 minutes'}`,
+          repeatDays:
+            plan.repeatDays.length > 0
+              ? plan.repeatDays
+              : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+          cue: plan.reminderCue || 'After school or work',
+          reminderTime:
+            plan.timeOfDay === 'Morning'
+              ? '9:00 AM'
+              : plan.timeOfDay === 'Afternoon'
+              ? '2:00 PM'
+              : '6:00 PM',
+          reminderEnabled: true,
+          notes: `Goal: ${plan.progressVision}`,
+          archived: false,
+          streak: 1,
+          bestStreak: 1,
+          totalCompletions: 1,
+          recent7Days: [false, false, false, false, true, false, false],
+        };
+
+        const exists = state.habits.some(
+          (h) => h.name.toLowerCase() === starterHabit.name.toLowerCase()
+        );
+
+        set({
+          userName: plan.userName.trim() || state.userName || 'Pratap Mukhiya',
+          companionName: plan.buddyName || 'Cozy Pingu',
+          mainGoal: plan.progressVision || 'Study consistently',
+          habits: exists ? state.habits : [starterHabit, ...state.habits],
+        });
+      },
+
+      resetToEmptyFreshStart: () =>
+        set({
+          coins: 0,
+          xp: 0,
+          level: 1,
+          habits: [],
+          completedByDate: {},
+          celebrationHabitId: null,
+        }),
 
       resetToDemo: () =>
         set({

@@ -59,6 +59,21 @@ export default function SettingsScreen() {
       emoji: '❓',
       route: '/settings/help',
     },
+    {
+      label: 'Run Onboarding Flow (16 steps)',
+      emoji: '🧭',
+      route: '/onboarding/splash',
+    },
+    {
+      label: 'Welcome Back Screen',
+      emoji: '👋',
+      route: '/onboarding/welcome-back',
+    },
+    {
+      label: 'Milestone Reward Preview',
+      emoji: '🧢',
+      route: '/shop/milestone',
+    },
   ];
 
   return (
