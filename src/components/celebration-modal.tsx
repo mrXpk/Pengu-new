@@ -84,6 +84,11 @@ export function CelebrationModal() {
               mode="celebrating"
               size={148}
               showEquippedBadges
+              speechBubble={
+                allCompleted
+                  ? '🎉 Hurray!! All goals done!'
+                  : '🎉 Hurray! Nice work!'
+              }
             />
             <View style={styles.checkBadge}>
               <Ionicons name="checkmark" size={26} color="#FFFFFF" />

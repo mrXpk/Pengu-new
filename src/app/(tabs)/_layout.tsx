@@ -143,8 +143,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="progress" />
       <Tabs.Screen name="social" />
       <Tabs.Screen name="settings" />
-      <Tabs.Screen name="focus" options={{ href: null }} />
-      <Tabs.Screen name="pingu" options={{ href: null }} />
+      <Tabs.Screen name="focus" />
+      <Tabs.Screen name="pingu" />
     </Tabs>
   );
 }

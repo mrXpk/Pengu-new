@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedPingu } from '@/components/animated-pingu';
 import {
   CoinBadge,
   MASCOT_IMAGES,
@@ -70,25 +71,20 @@ export default function ShopItemPreviewScreen() {
           <CoinBadge />
         </View>
 
-        {/* Big Mascot Stage */}
+        {/* Big Mascot Stage Wearing the Selected Cosmetic Live */}
         <View style={styles.stageBox}>
           <Image
             source={MASCOT_IMAGES.arctic}
             style={styles.stageBg}
             contentFit="cover"
           />
-          <Image
-            source={MASCOT_IMAGES.celebrating}
-            style={styles.penguinHero}
-            contentFit="contain"
+          <AnimatedPingu
+            pose="celebrating"
+            mode="celebrating"
+            size={195}
+            previewItemId={item.id}
+            speechBubble={`Trying on ${item.name}!`}
           />
-          <View
-            style={[
-              styles.floatingItemBadge,
-              { borderColor: item.accentColor },
-            ]}>
-            <Text style={{ fontSize: 34 }}>{item.emoji}</Text>
-          </View>
         </View>
 
         <Text style={styles.subtitle}>{item.subtitle}</Text>
