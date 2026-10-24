@@ -4,8 +4,7 @@ import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
-import { usePenguStore } from '@/store/usePenguStore';
+import { Fonts, PenguColors } from '@/constants/theme';
 import { playSound } from '@/utils/sound';
 
 function CustomPenguTabBar({
@@ -15,17 +14,38 @@ function CustomPenguTabBar({
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const themeMode = usePenguStore((s) => s.themeMode);
-  const equippedSceneryId = usePenguStore((s) => s.equippedSceneryId);
-  const isObsidian =
-    themeMode === 'dark' || equippedSceneryId === 'penguin-obsidian';
 
   const tabItems = [
-    { routeName: 'index', label: 'Home', icon: 'home' as const },
-    { routeName: 'focus', label: 'Focus', icon: 'timer' as const },
-    { routeName: 'fab', label: 'Add', icon: 'add' as const },
-    { routeName: 'social', label: 'Social', icon: 'people' as const },
-    { routeName: 'pingu', label: 'Pingu', icon: 'happy' as const },
+    {
+      routeName: 'index',
+      label: 'Home',
+      icon: 'home-outline' as const,
+      activeIcon: 'home' as const,
+    },
+    {
+      routeName: 'progress',
+      label: 'Progress',
+      icon: 'stats-chart-outline' as const,
+      activeIcon: 'stats-chart' as const,
+    },
+    {
+      routeName: 'fab',
+      label: 'Add',
+      icon: 'add' as const,
+      activeIcon: 'add' as const,
+    },
+    {
+      routeName: 'social',
+      label: 'Social',
+      icon: 'people-outline' as const,
+      activeIcon: 'people' as const,
+    },
+    {
+      routeName: 'settings',
+      label: 'Settings',
+      icon: 'settings-outline' as const,
+      activeIcon: 'settings' as const,
+    },
   ];
 
   const currentRouteName = state.routes[state.index]?.name ?? 'index';
@@ -33,81 +53,81 @@ function CustomPenguTabBar({
   return (
     <View
       style={[
-        styles.tabBarContainer,
-        isObsidian && styles.tabBarObsidian,
+        styles.outerDockWrap,
         { paddingBottom: Math.max(insets.bottom, 10) },
-      ]}>
-      {tabItems.map((item) => {
-        if (item.routeName === 'fab') {
+      ]}
+      pointerEvents="box-none">
+      <View
+        style={[
+          styles.liquidGlassBar,
+          Platform.OS === 'web'
+            ? ({
+                backdropFilter: 'blur(22px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(22px) saturate(180%)',
+              } as any)
+            : null,
+        ]}>
+        {/* Specular Top Liquid Highlight Line */}
+        <View style={styles.specularTopSheen} pointerEvents="none" />
+
+        {tabItems.map((item) => {
+          if (item.routeName === 'fab') {
+            return (
+              <View key="fab" style={styles.fabWrapper}>
+                <Pressable
+                  onPress={() => {
+                    playSound('tap', 1.15);
+                    router.push('/habits/form' as any);
+                  }}
+                  style={({ pressed }) => [
+                    styles.fabButton,
+                    pressed && { transform: [{ scale: 0.92 }] },
+                  ]}>
+                  <Ionicons name="add" size={32} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            );
+          }
+
+          const isFocused = currentRouteName === item.routeName;
+
+          const onPress = () => {
+            playSound('tap');
+            if (isFocused) return;
+            router.navigate(
+              (item.routeName === 'index'
+                ? '/(tabs)'
+                : `/(tabs)/${item.routeName}`) as any
+            );
+          };
+
           return (
-            <View key="fab" style={styles.fabWrapper}>
-              <Pressable
-                onPress={() => {
-                  playSound('tap', 1.15);
-                  router.push('/habits/form' as any);
-                }}
-                style={({ pressed }) => [
-                  styles.fabButton,
-                  isObsidian && { borderColor: PenguinObsidianTheme.card },
-                  pressed && { transform: [{ scale: 0.92 }] },
-                ]}>
-                <Ionicons name="add" size={34} color="#FFFFFF" />
-              </Pressable>
-            </View>
-          );
-        }
-
-        const isFocused = currentRouteName === item.routeName;
-
-        const onPress = () => {
-          playSound('tap');
-          if (isFocused) return;
-          router.navigate(
-            (item.routeName === 'index'
-              ? '/(tabs)'
-              : `/(tabs)/${item.routeName}`) as any
-          );
-        };
-
-        return (
-          <Pressable
-            key={item.routeName}
-            onPress={onPress}
-            style={styles.tabItem}>
-            {item.routeName === 'pingu' ? (
+            <Pressable
+              key={item.routeName}
+              onPress={onPress}
+              style={styles.tabItem}>
               <View
                 style={[
-                  styles.pinguIconBubble,
-                  isObsidian && { backgroundColor: '#1E293B' },
-                  isFocused && styles.pinguIconBubbleActive,
+                  styles.tabPillInner,
+                  isFocused && styles.tabPillInnerActive,
                 ]}>
-                <Text style={{ fontSize: 17 }}>🐧</Text>
+                <Ionicons
+                  name={isFocused ? item.activeIcon : item.icon}
+                  size={22}
+                  color={isFocused ? PenguColors.primaryGreen : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    isFocused && styles.tabLabelActive,
+                  ]}>
+                  {item.label}
+                </Text>
               </View>
-            ) : (
-              <Ionicons
-                name={item.icon}
-                size={24}
-                color={
-                  isFocused
-                    ? isObsidian
-                      ? PenguinObsidianTheme.auroraEmerald
-                      : PenguColors.primaryGreen
-                    : '#64748B'
-                }
-              />
-            )}
-            <Text
-              style={[
-                styles.tabLabel,
-                isFocused && styles.tabLabelActive,
-                isFocused &&
-                  isObsidian && { color: PenguinObsidianTheme.auroraEmerald },
-              ]}>
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -120,86 +140,92 @@ export default function TabsLayout() {
         headerShown: false,
       }}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="focus" />
+      <Tabs.Screen name="progress" />
       <Tabs.Screen name="social" />
-      <Tabs.Screen name="pingu" />
-      <Tabs.Screen name="progress" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="settings" />
+      <Tabs.Screen name="focus" options={{ href: null }} />
+      <Tabs.Screen name="pingu" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
+  outerDockWrap: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingTop: 4,
+  },
+  liquidGlassBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    paddingVertical: 8,
     paddingHorizontal: 8,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    borderColor: '#E8EEF2',
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
     shadowColor: '#091E42',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 10,
+    position: 'relative',
   },
-  tabBarObsidian: {
-    backgroundColor: PenguinObsidianTheme.card,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+  specularTopSheen: {
+    position: 'absolute',
+    top: 1,
+    left: 20,
+    right: 20,
+    height: 1.5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    gap: 3,
+  },
+  tabPillInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    gap: 2,
+  },
+  tabPillInnerActive: {
+    backgroundColor: 'rgba(46, 204, 113, 0.12)',
   },
   tabLabel: {
     fontFamily: Fonts?.sans,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
   tabLabelActive: {
-    color: PenguColors.primaryGreen,
+    color: PenguColors.primaryGreenDark,
     fontWeight: '800',
   },
-  pinguIconBubble: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinguIconBubbleActive: {
-    backgroundColor: PenguColors.surfaceMint,
-    borderWidth: 1.5,
-    borderColor: PenguColors.primaryGreen,
-  },
   fabWrapper: {
-    width: 72,
+    width: 66,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Platform.select({ ios: -28, default: -24 }),
+    marginTop: Platform.select({ ios: -22, default: -18 }),
   },
   fabButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: PenguColors.primaryGreen,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderWidth: 3.5,
+    borderColor: 'rgba(255, 255, 255, 0.96)',
     shadowColor: PenguColors.primaryGreenDark,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
     elevation: 8,
   },
 });

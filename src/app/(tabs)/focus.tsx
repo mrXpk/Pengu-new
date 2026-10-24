@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Pressable,
@@ -18,7 +19,7 @@ import {
   MASCOT_IMAGES,
   PrimaryButton,
 } from '@/components/pengu-ui';
-import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
+import { Fonts, PenguColors } from '@/constants/theme';
 import { usePenguStore } from '@/store/usePenguStore';
 import {
   AmbientSoundscapeType,
@@ -28,10 +29,10 @@ import {
 } from '@/utils/sound';
 
 const DURATION_PRESETS = [
-  { label: '5m Micro', minutes: 5, tag: 'ADHD Easy Start' },
-  { label: '15m Sprint', minutes: 15, tag: 'Flow Builder' },
+  { label: '5m Micro', minutes: 5, tag: 'Easy start' },
+  { label: '15m Sprint', minutes: 15, tag: 'Flow builder' },
   { label: '25m Pomodoro', minutes: 25, tag: '2x Bonus XP' },
-  { label: '45m Deep', minutes: 45, tag: 'Master Focus' },
+  { label: '45m Deep', minutes: 45, tag: 'Deep focus' },
 ];
 
 const AMBIENT_SOUNDS: {
@@ -42,11 +43,12 @@ const AMBIENT_SOUNDS: {
   { id: 'none', label: 'Silent', emoji: '🔇' },
   { id: 'rain', label: 'Cozy Rain', emoji: '🌧️' },
   { id: 'wind', label: 'Arctic Wind', emoji: '❄️' },
-  { id: 'brown', label: 'ADHD Brown', emoji: '🎧' },
+  { id: 'brown', label: 'Brown Noise', emoji: '🎧' },
   { id: 'binaural', label: 'Alpha Wave', emoji: '🌊' },
 ];
 
 export default function FocusTimerScreen() {
+  const router = useRouter();
   const habits = usePenguStore((s) => s.habits);
   const focusSessionsCompleted = usePenguStore((s) => s.focusSessionsCompleted);
   const totalFocusMinutes = usePenguStore((s) => s.totalFocusMinutes);
@@ -93,12 +95,7 @@ export default function FocusTimerScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [
-    completeFocusSession,
-    isRunning,
-    linkedHabitId,
-    selectedMinutes,
-  ]);
+  }, [completeFocusSession, isRunning, linkedHabitId, selectedMinutes]);
 
   const handleSelectDuration = (mins: number) => {
     playSound('tap');
@@ -150,8 +147,8 @@ export default function FocusTimerScreen() {
     .padStart(2, '0');
   const secsPart = (secondsLeft % 60).toString().padStart(2, '0');
 
-  const ringSize = 265;
-  const strokeWidth = 12;
+  const ringSize = 256;
+  const strokeWidth = 10;
   const radius = (ringSize - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progressRatio);
@@ -163,12 +160,24 @@ export default function FocusTimerScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        {/* Top Header */}
+        {/* Top Minimalist Header with Back Button */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.pageTitle}>Focus with Pingu</Text>
+          <Pressable
+            onPress={() => {
+              playSound('tap');
+              router.replace('/(tabs)' as any);
+            }}
+            style={styles.backBtn}>
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={PenguColors.navyHeading}
+            />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pageTitle}>Focus Session</Text>
             <Text style={styles.pageSub}>
-              ADHD Body-Doubling • 2x XP & Coins
+              Calm companion timer • +25 XP & +20 Coins
             </Text>
           </View>
           <CoinBadge />
@@ -202,27 +211,26 @@ export default function FocusTimerScreen() {
           })}
         </ScrollView>
 
-        {/* Central Circular Timer + Pingu Body-Doubling Stage */}
+        {/* Soft Light Circular Timer + Pingu Companion Stage */}
         <View style={styles.timerStageCard}>
           <Image
             source={MASCOT_IMAGES.arctic}
             style={styles.stageBg}
             contentFit="cover"
           />
-          <View style={styles.auroraOverlay} />
 
           <View style={styles.ringWrapper}>
             <Svg width={ringSize} height={ringSize}>
               <Circle
-                stroke="rgba(148, 163, 184, 0.25)"
-                fill="none"
+                stroke="rgba(9, 30, 66, 0.08)"
+                fill="rgba(255, 255, 255, 0.85)"
                 cx={ringSize / 2}
                 cy={ringSize / 2}
                 r={radius}
                 strokeWidth={strokeWidth}
               />
               <Circle
-                stroke={PenguinObsidianTheme.auroraEmerald}
+                stroke={PenguColors.primaryGreen}
                 fill="none"
                 cx={ringSize / 2}
                 cy={ringSize / 2}
@@ -239,7 +247,7 @@ export default function FocusTimerScreen() {
               <AnimatedPingu
                 pose={isRunning ? 'writing' : 'encouraging'}
                 mode={isRunning ? 'focus' : 'breathing'}
-                size={118}
+                size={112}
                 showEquippedBadges
               />
               <Text style={styles.timerDigits}>
@@ -247,17 +255,17 @@ export default function FocusTimerScreen() {
               </Text>
               <Text style={styles.timerStateText}>
                 {isRunning
-                  ? '📖 Pingu is studying right beside you...'
+                  ? 'Pingu is focusing quietly beside you...'
                   : showCelebrationBlast
-                  ? '🎉 Session Complete! +25 XP & +20 Coins!'
-                  : 'Tap Start to enter deep focus flow'}
+                  ? 'Session complete! +25 XP & +20 Coins'
+                  : 'Tap Start to begin a calm session'}
               </Text>
             </View>
           </View>
 
           <View style={styles.controlsRow}>
             <PrimaryButton
-              label={isRunning ? 'Pause Focus' : 'Start Focus Session'}
+              label={isRunning ? 'Pause Session' : 'Start Focus Session'}
               icon={isRunning ? 'pause' : 'play'}
               onPress={handleToggleStart}
               style={{ flex: 1 }}
@@ -266,15 +274,19 @@ export default function FocusTimerScreen() {
               <Pressable
                 onPress={handleQuickFinishDemo}
                 style={styles.instantCompleteBtn}>
-                <Ionicons name="checkmark-done" size={22} color="#10B981" />
+                <Ionicons
+                  name="checkmark-done"
+                  size={20}
+                  color={PenguColors.primaryGreenDark}
+                />
                 <Text style={styles.instantCompleteText}>Done</Text>
               </Pressable>
             )}
           </View>
         </View>
 
-        {/* ADHD Ambient Soundscapes */}
-        <Text style={styles.sectionTitle}>ADHD Ambient Soundscapes</Text>
+        {/* Ambient Soundscapes */}
+        <Text style={styles.sectionTitle}>Ambient soundscapes</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -289,7 +301,7 @@ export default function FocusTimerScreen() {
                   styles.ambientCard,
                   active && styles.ambientCardActive,
                 ]}>
-                <Text style={{ fontSize: 24 }}>{s.emoji}</Text>
+                <Text style={{ fontSize: 22 }}>{s.emoji}</Text>
                 <Text
                   style={[
                     styles.ambientLabel,
@@ -303,7 +315,7 @@ export default function FocusTimerScreen() {
         </ScrollView>
 
         {/* Link to Active Habit */}
-        <Text style={styles.sectionTitle}>Link a Habit (Auto-Completes)</Text>
+        <Text style={styles.sectionTitle}>Link a habit</Text>
         <View style={styles.habitSelectCol}>
           {activeBuildHabits.map((h) => {
             const selected = linkedHabitId === h.id;
@@ -320,16 +332,14 @@ export default function FocusTimerScreen() {
                 ]}>
                 <Ionicons
                   name={selected ? 'radio-button-on' : 'radio-button-off'}
-                  size={22}
+                  size={20}
                   color={
-                    selected
-                      ? PenguinObsidianTheme.auroraEmerald
-                      : PenguinObsidianTheme.textSecondary
+                    selected ? PenguColors.primaryGreen : '#94A3B8'
                   }
                 />
                 <Text style={styles.habitLinkName}>{h.name}</Text>
                 <View style={styles.bonusPill}>
-                  <Text style={styles.bonusPillText}>+25 XP • +20 🪙</Text>
+                  <Text style={styles.bonusPillText}>+20 🪙</Text>
                 </View>
               </Pressable>
             );
@@ -340,11 +350,11 @@ export default function FocusTimerScreen() {
         <View style={styles.statsFooter}>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{focusSessionsCompleted}</Text>
-            <Text style={styles.statLabel}>Focus Sessions</Text>
+            <Text style={styles.statLabel}>Sessions completed</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{totalFocusMinutes}m</Text>
-            <Text style={styles.statLabel}>Total Deep Focus</Text>
+            <Text style={styles.statLabel}>Total focus time</Text>
           </View>
         </View>
       </ScrollView>
@@ -355,7 +365,7 @@ export default function FocusTimerScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: PenguinObsidianTheme.background,
+    backgroundColor: PenguColors.background,
   },
   scroll: {
     flex: 1,
@@ -368,80 +378,82 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 16,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pageTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    color: PenguinObsidianTheme.textPrimary,
+    color: PenguColors.navyHeading,
   },
   pageSub: {
     fontFamily: Fonts?.sans,
     fontSize: 13,
-    color: PenguinObsidianTheme.glacierCyan,
-    marginTop: 2,
+    color: PenguColors.textSecondary,
+    marginTop: 1,
   },
   presetsScroll: {
     gap: 10,
     paddingBottom: 14,
   },
   presetChip: {
-    backgroundColor: PenguinObsidianTheme.card,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
   },
   presetChipActive: {
-    backgroundColor: PenguinObsidianTheme.cardSelected,
-    borderColor: PenguinObsidianTheme.auroraEmerald,
+    backgroundColor: PenguColors.surfaceMint,
+    borderColor: PenguColors.primaryGreen,
   },
   presetLabel: {
     fontFamily: Fonts?.rounded,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    color: PenguinObsidianTheme.textPrimary,
+    color: PenguColors.navyHeading,
   },
   presetLabelActive: {
-    color: '#FFFFFF',
+    color: PenguColors.primaryGreenDark,
   },
   presetTag: {
     fontFamily: Fonts?.sans,
     fontSize: 11,
-    color: PenguinObsidianTheme.textSecondary,
+    color: PenguColors.textSecondary,
     marginTop: 2,
   },
   presetTagActive: {
-    color: '#A7F3D0',
+    color: PenguColors.primaryGreenDark,
   },
   timerStageCard: {
-    backgroundColor: PenguinObsidianTheme.card,
-    borderRadius: 30,
+    backgroundColor: '#EAF6FF',
+    borderRadius: 28,
     padding: 20,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+    borderWidth: 1,
+    borderColor: '#D5ECF9',
     overflow: 'hidden',
     marginBottom: 20,
   },
   stageBg: {
     ...StyleSheet.absoluteFill,
-    opacity: 0.16,
-  },
-  auroraOverlay: {
-    position: 'absolute',
-    top: -40,
-    width: '80%',
-    height: 120,
-    borderRadius: 999,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    opacity: 0.35,
   },
   ringWrapper: {
-    width: 265,
-    height: 265,
+    width: 256,
+    height: 256,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -450,19 +462,19 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
   },
   timerDigits: {
     fontFamily: Fonts?.rounded,
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: PenguColors.navyHeading,
     marginTop: -4,
   },
   timerStateText: {
     fontFamily: Fonts?.sans,
     fontSize: 12,
-    color: '#94A3B8',
+    color: PenguColors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -476,9 +488,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1.5,
-    borderColor: '#10B981',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: PenguColors.mintBorder,
     paddingHorizontal: 14,
     paddingVertical: 15,
     borderRadius: 999,
@@ -487,13 +499,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts?.rounded,
     fontSize: 14,
     fontWeight: '800',
-    color: '#10B981',
+    color: PenguColors.primaryGreenDark,
   },
   sectionTitle: {
     fontFamily: Fonts?.rounded,
     fontSize: 18,
     fontWeight: '900',
-    color: PenguinObsidianTheme.textPrimary,
+    color: PenguColors.navyHeading,
     marginBottom: 10,
   },
   ambientRow: {
@@ -501,56 +513,56 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   ambientCard: {
-    backgroundColor: PenguinObsidianTheme.card,
-    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
     alignItems: 'center',
     gap: 4,
-    borderWidth: 1.5,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-    minWidth: 96,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
+    minWidth: 92,
   },
   ambientCardActive: {
-    backgroundColor: PenguinObsidianTheme.cardSelected,
-    borderColor: PenguinObsidianTheme.glacierCyan,
+    backgroundColor: PenguColors.surfaceMint,
+    borderColor: PenguColors.primaryGreen,
   },
   ambientLabel: {
     fontFamily: Fonts?.rounded,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: PenguinObsidianTheme.textSecondary,
+    color: PenguColors.textSecondary,
   },
   ambientLabelActive: {
-    color: '#FFFFFF',
+    color: PenguColors.primaryGreenDark,
   },
   habitSelectCol: {
-    gap: 10,
+    gap: 8,
     marginBottom: 18,
   },
   habitLinkRow: {
-    backgroundColor: PenguinObsidianTheme.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1.5,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
   },
   habitLinkRowSelected: {
-    backgroundColor: PenguinObsidianTheme.cardSelected,
-    borderColor: PenguinObsidianTheme.auroraEmerald,
+    backgroundColor: PenguColors.surfaceMint,
+    borderColor: PenguColors.mintBorder,
   },
   habitLinkName: {
     flex: 1,
     fontFamily: Fonts?.rounded,
     fontSize: 15,
     fontWeight: '800',
-    color: PenguinObsidianTheme.textPrimary,
+    color: PenguColors.navyHeading,
   },
   bonusPill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -559,7 +571,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts?.rounded,
     fontSize: 12,
     fontWeight: '800',
-    color: PenguinObsidianTheme.beakGold,
+    color: '#B45309',
   },
   statsFooter: {
     flexDirection: 'row',
@@ -567,23 +579,23 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: PenguinObsidianTheme.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
+    borderColor: '#EAECEF',
   },
   statNumber: {
     fontFamily: Fonts?.rounded,
     fontSize: 24,
     fontWeight: '900',
-    color: PenguinObsidianTheme.glacierCyan,
+    color: PenguColors.navyHeading,
   },
   statLabel: {
     fontFamily: Fonts?.sans,
     fontSize: 12,
-    color: PenguinObsidianTheme.textSecondary,
+    color: PenguColors.textSecondary,
     marginTop: 2,
   },
 });

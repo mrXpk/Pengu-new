@@ -220,7 +220,7 @@ export default function OnboardingWizardScreen() {
   ]);
   const [buddyName, setBuddyName] = useState('Cozy Pingu');
   const [themePreference, setThemePreference] = useState<'light' | 'dark'>(
-    'dark'
+    'light'
   );
   const [pledgeProgress, setPledgeProgress] = useState(0);
   const [pledgeSigned, setPledgeSigned] = useState(false);
@@ -369,9 +369,6 @@ export default function OnboardingWizardScreen() {
             style={[styles.progressFill, { width: `${progressPct}%` }]}
           />
         </View>
-        <Text style={styles.stepCounter}>
-          {step}/{TOTAL_STEPS}
-        </Text>
       </View>
 
       <ScrollView

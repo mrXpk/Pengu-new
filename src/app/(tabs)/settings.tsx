@@ -25,6 +25,16 @@ export default function SettingsScreen() {
 
   const menuRows = [
     {
+      label: 'Pingu’s Home & Shop',
+      emoji: '🐧',
+      route: '/(tabs)/pingu',
+    },
+    {
+      label: 'Focus Session Timer',
+      emoji: '⏱️',
+      route: '/(tabs)/focus',
+    },
+    {
       label: 'Notifications',
       emoji: '🔔',
       route: '/settings/notifications',
@@ -92,33 +102,7 @@ export default function SettingsScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            marginBottom: 14,
-          }}>
-          <Pressable
-            onPress={() => router.replace('/(tabs)' as any)}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              backgroundColor: '#FFFFFF',
-              borderWidth: 1,
-              borderColor: PenguColors.cardBorder,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Ionicons
-              name="arrow-back"
-              size={20}
-              color={PenguColors.navyHeading}
-            />
-          </Pressable>
-          <Text style={[styles.pageTitle, { marginBottom: 0 }]}>Settings</Text>
-        </View>
+        <Text style={styles.pageTitle}>Settings</Text>
 
         {/* User Profile Card */}
         <Pressable

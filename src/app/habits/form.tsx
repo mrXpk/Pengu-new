@@ -140,6 +140,35 @@ export default function HabitFormScreen() {
           />
         </View>
 
+        {/* Quick Launch: Start a Focus Session from (+) Screen */}
+        {!existing && (
+          <Pressable
+            onPress={() => router.push('/(tabs)/focus' as any)}
+            style={({ pressed }) => [
+              styles.focusQuickBanner,
+              pressed && { opacity: 0.9 },
+            ]}>
+            <View style={styles.focusQuickIconCircle}>
+              <Ionicons
+                name="timer-outline"
+                size={22}
+                color={PenguColors.primaryGreenDark}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.focusQuickTitle}>Start a Focus Session</Text>
+              <Text style={styles.focusQuickSub}>
+                Study or work alongside Pingu with calm timer & ambient sounds
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={PenguColors.navyHeading}
+            />
+          </Pressable>
+        )}
+
         {/* Build vs. Break Habit Type Selector */}
         <View style={styles.fieldCard}>
           <Text style={styles.fieldLabel}>Habit mode</Text>
@@ -384,6 +413,38 @@ const styles = StyleSheet.create({
   heroMascot: {
     width: 118,
     height: 118,
+  },
+  focusQuickBanner: {
+    backgroundColor: '#EAF6FF',
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#D5ECF9',
+  },
+  focusQuickIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D5ECF9',
+  },
+  focusQuickTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 16,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
+  },
+  focusQuickSub: {
+    fontFamily: Fonts?.sans,
+    fontSize: 12,
+    color: PenguColors.textSecondary,
+    marginTop: 2,
   },
   fieldCard: {
     backgroundColor: '#FFFFFF',

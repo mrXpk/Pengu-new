@@ -11,14 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CoinBadge, PrimaryButton } from '@/components/pengu-ui';
-import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
+import { Fonts, PenguColors } from '@/constants/theme';
 import { usePenguStore } from '@/store/usePenguStore';
 import { playSound } from '@/utils/sound';
 
 export default function SocialCommunityScreen() {
   const router = useRouter();
-  const themeMode = usePenguStore((s) => s.themeMode);
-  const equippedSceneryId = usePenguStore((s) => s.equippedSceneryId);
   const socialFeed = usePenguStore((s) => s.socialFeed);
   const coopHabits = usePenguStore((s) => s.coopHabits);
   const followingIds = usePenguStore((s) => s.followingIds);
@@ -29,75 +27,55 @@ export default function SocialCommunityScreen() {
 
   const [activeTab, setActiveTab] = useState<'feed' | 'coop' | 'squad'>('feed');
 
-  const isObsidian =
-    themeMode === 'dark' || equippedSceneryId === 'penguin-obsidian';
-
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        isObsidian && { backgroundColor: PenguinObsidianTheme.background },
-      ]}
-      edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        {/* Top Header */}
+        {/* Minimalist Top Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text
-              style={[
-                styles.pageTitle,
-                isObsidian && { color: PenguinObsidianTheme.textPrimary },
-              ]}>
-              Iceberg Squad
-            </Text>
-            <Text
-              style={[
-                styles.pageSub,
-                isObsidian && { color: PenguinObsidianTheme.textSecondary },
-              ]}>
-              Build habits together & cheer friends on
+            <Text style={styles.pageTitle}>Community</Text>
+            <Text style={styles.pageSub}>
+              Build habits together & stay accountable
             </Text>
           </View>
           <CoinBadge />
         </View>
 
-        {/* Invite Friends Hero Banner */}
+        {/* Minimalist Soft-Mint Invite Friends Card */}
         <Pressable
           onPress={() => {
             playSound('tap');
             router.push('/referrals' as any);
           }}
-          style={styles.referralBanner}>
+          style={({ pressed }) => [
+            styles.referralBanner,
+            pressed && { opacity: 0.88 },
+          ]}>
           <View style={styles.referralGiftCircle}>
-            <Text style={{ fontSize: 28 }}>🎁</Text>
+            <Text style={{ fontSize: 22 }}>🎁</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.referralTitle}>
-              Invite Friends • Get Free Pro & 1,500 🪙
-            </Text>
+            <Text style={styles.referralTitle}>Invite friends & earn rewards</Text>
             <Text style={styles.referralSub}>
-              Earn +250 coins & 1x Ice Shield for every friend who joins!
+              Get +250 coins & 1 streak shield when a friend joins
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={PenguColors.navyHeading}
+          />
         </Pressable>
 
-        {/* Mode Switcher */}
-        <View
-          style={[
-            styles.segmentBar,
-            isObsidian && {
-              backgroundColor: PenguinObsidianTheme.card,
-              borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-            },
-          ]}>
+        {/* Minimalist Segmented Switcher */}
+        <View style={styles.segmentBar}>
           {[
-            { id: 'feed', label: '🔥 Live Feed' },
-            { id: 'coop', label: '🤝 Buddy Streaks' },
-            { id: 'squad', label: '🏆 Leaderboard' },
+            { id: 'feed', label: 'Feed' },
+            { id: 'coop', label: 'Buddy Streaks' },
+            { id: 'squad', label: 'Leaderboard' },
           ].map((t) => {
             const active = activeTab === t.id;
             return (
@@ -114,7 +92,6 @@ export default function SocialCommunityScreen() {
                 <Text
                   style={[
                     styles.segmentText,
-                    isObsidian && { color: PenguinObsidianTheme.textSecondary },
                     active && styles.segmentTextActive,
                   ]}>
                   {t.label}
@@ -124,44 +101,24 @@ export default function SocialCommunityScreen() {
           })}
         </View>
 
-        {/* TAB 1: LIVE COMMUNITY FEED */}
+        {/* TAB 1: HIGH-READABILITY MINIMALIST FEED */}
         {activeTab === 'feed' && (
           <View style={styles.listCol}>
             {socialFeed.map((post) => {
               const isFollowing = followingIds.includes(post.userId);
               return (
-                <View
-                  key={post.id}
-                  style={[
-                    styles.feedCard,
-                    isObsidian && {
-                      backgroundColor: PenguinObsidianTheme.card,
-                      borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-                    },
-                  ]}>
+                <View key={post.id} style={styles.feedCard}>
                   <View style={styles.feedHeader}>
                     <View style={styles.avatarWrap}>
-                      <Text style={{ fontSize: 24 }}>{post.avatarEmoji}</Text>
-                      <View style={styles.outfitMiniBadge}>
-                        <Text style={{ fontSize: 12 }}>{post.outfitEmoji}</Text>
-                      </View>
+                      <Text style={{ fontSize: 20 }}>{post.avatarEmoji}</Text>
                     </View>
+
                     <View style={{ flex: 1 }}>
                       <View style={styles.nameAndStreakRow}>
-                        <Text
-                          style={[
-                            styles.userName,
-                            isObsidian && {
-                              color: PenguinObsidianTheme.textPrimary,
-                            },
-                          ]}>
-                          {post.userName}
+                        <Text style={styles.userName}>{post.userName}</Text>
+                        <Text style={styles.streakMeta}>
+                          • 🔥 {post.streakDays}d
                         </Text>
-                        <View style={styles.streakPill}>
-                          <Text style={styles.streakPillText}>
-                            🔥 {post.streakDays}d
-                          </Text>
-                        </View>
                       </View>
                       <Text style={styles.companionSub}>
                         with {post.companionName} • {post.timeAgo}
@@ -182,38 +139,25 @@ export default function SocialCommunityScreen() {
                           styles.followBtnText,
                           isFollowing && styles.followBtnTextActive,
                         ]}>
-                        {isFollowing ? 'Following' : '+ Follow'}
+                        {isFollowing ? 'Following' : 'Follow'}
                       </Text>
                     </Pressable>
                   </View>
 
-                  <Text
-                    style={[
-                      styles.actionCopy,
-                      isObsidian && { color: PenguinObsidianTheme.textPrimary },
-                    ]}>
+                  <Text style={styles.actionCopy}>
+                    <Text style={{ fontWeight: '700' }}>
+                      {post.userName.split(' ')[0]}
+                    </Text>{' '}
                     {post.actionText}
                   </Text>
 
-                  <View
-                    style={[
-                      styles.habitTagBox,
-                      isObsidian && { backgroundColor: '#0F1B2E' },
-                    ]}>
+                  <View style={styles.habitTagBox}>
                     <Ionicons
                       name="checkmark-circle"
                       size={18}
                       color={PenguColors.primaryGreen}
                     />
-                    <Text
-                      style={[
-                        styles.habitTagText,
-                        isObsidian && {
-                          color: PenguinObsidianTheme.textPrimary,
-                        },
-                      ]}>
-                      {post.habitName}
-                    </Text>
+                    <Text style={styles.habitTagText}>{post.habitName}</Text>
                   </View>
 
                   <View style={styles.feedFooter}>
@@ -226,13 +170,21 @@ export default function SocialCommunityScreen() {
                         styles.cheerBtn,
                         post.cheeredByMe && styles.cheerBtnActive,
                       ]}>
-                      <Text style={{ fontSize: 16 }}>👏</Text>
+                      <Ionicons
+                        name={post.cheeredByMe ? 'heart' : 'heart-outline'}
+                        size={16}
+                        color={
+                          post.cheeredByMe
+                            ? PenguColors.primaryGreenDark
+                            : '#64748B'
+                        }
+                      />
                       <Text
                         style={[
                           styles.cheerBtnText,
                           post.cheeredByMe && styles.cheerBtnTextActive,
                         ]}>
-                        {post.cheeredByMe ? 'Cheered!' : 'Cheer (+2 🪙)'} •{' '}
+                        {post.cheeredByMe ? 'Cheered' : 'Cheer'} •{' '}
                         {post.cheersCount}
                       </Text>
                     </Pressable>
@@ -246,19 +198,6 @@ export default function SocialCommunityScreen() {
         {/* TAB 2: CO-OP SHARED BUDDY STREAKS */}
         {activeTab === 'coop' && (
           <View style={styles.listCol}>
-            <View style={styles.coopIntroBox}>
-              <Text style={{ fontSize: 28 }}>🤝</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.coopIntroTitle}>
-                  Shared Co-Op Habit Streaks
-                </Text>
-                <Text style={styles.coopIntroSub}>
-                  Both you and your buddy check in daily to keep your Shared
-                  Flame alive!
-                </Text>
-              </View>
-            </View>
-
             {coopHabits.map((coop) => {
               const bothDone =
                 coop.myCompletedToday && coop.partnerCompletedToday;
@@ -267,26 +206,13 @@ export default function SocialCommunityScreen() {
                   key={coop.id}
                   style={[
                     styles.feedCard,
-                    isObsidian && {
-                      backgroundColor: PenguinObsidianTheme.card,
-                      borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-                    },
-                    bothDone && { borderColor: PenguColors.primaryGreen },
+                    bothDone && { borderColor: PenguColors.mintBorder },
                   ]}>
                   <View style={styles.coopTopRow}>
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.coopHabitTitle,
-                          isObsidian && {
-                            color: PenguinObsidianTheme.textPrimary,
-                          },
-                        ]}>
-                        {coop.title}
-                      </Text>
+                      <Text style={styles.coopHabitTitle}>{coop.title}</Text>
                       <Text style={styles.companionSub}>
-                        Partner: {coop.partnerAvatar} {coop.partnerName} • +
-                        {coop.rewardCoins} 🪙 bonus
+                        Partner: {coop.partnerName} • +{coop.rewardCoins} coins
                       </Text>
                     </View>
                     <View style={styles.sharedFlameBadge}>
@@ -296,7 +222,6 @@ export default function SocialCommunityScreen() {
                     </View>
                   </View>
 
-                  {/* Dual Partner Progress Pills */}
                   <View style={styles.dualStatusRow}>
                     <View
                       style={[
@@ -309,8 +234,12 @@ export default function SocialCommunityScreen() {
                             ? 'checkmark-circle'
                             : 'ellipse-outline'
                         }
-                        size={18}
-                        color={coop.myCompletedToday ? '#16A34A' : '#64748B'}
+                        size={16}
+                        color={
+                          coop.myCompletedToday
+                            ? PenguColors.primaryGreen
+                            : '#94A3B8'
+                        }
                       />
                       <Text style={styles.partnerStatusText}>
                         You: {coop.myCompletedToday ? 'Done' : 'Pending'}
@@ -328,9 +257,11 @@ export default function SocialCommunityScreen() {
                             ? 'checkmark-circle'
                             : 'ellipse-outline'
                         }
-                        size={18}
+                        size={16}
                         color={
-                          coop.partnerCompletedToday ? '#16A34A' : '#64748B'
+                          coop.partnerCompletedToday
+                            ? PenguColors.primaryGreen
+                            : '#94A3B8'
                         }
                       />
                       <Text style={styles.partnerStatusText}>
@@ -343,7 +274,7 @@ export default function SocialCommunityScreen() {
                   <View style={styles.coopActionsRow}>
                     {!coop.myCompletedToday ? (
                       <PrimaryButton
-                        label={`Check In (+${coop.rewardCoins} 🪙)`}
+                        label={`Check in (+${coop.rewardCoins} 🪙)`}
                         onPress={() => {
                           playSound('checkin');
                           checkInCoopHabit(coop.id);
@@ -353,7 +284,7 @@ export default function SocialCommunityScreen() {
                     ) : (
                       <View style={styles.completedTag}>
                         <Text style={styles.completedTagText}>
-                          ✅ You checked in today!
+                          Checked in today
                         </Text>
                       </View>
                     )}
@@ -366,7 +297,7 @@ export default function SocialCommunityScreen() {
                         }}
                         style={styles.nudgeBtn}>
                         <Text style={styles.nudgeBtnText}>
-                          👋 Nudge {coop.partnerName.split(' ')[0]}
+                          Nudge {coop.partnerName.split(' ')[0]}
                         </Text>
                       </Pressable>
                     )}
@@ -377,7 +308,7 @@ export default function SocialCommunityScreen() {
           </View>
         )}
 
-        {/* TAB 3: SQUAD LEADERBOARD */}
+        {/* TAB 3: MINIMALIST LEADERBOARD */}
         {activeTab === 'squad' && (
           <View style={styles.listCol}>
             {[
@@ -424,37 +355,15 @@ export default function SocialCommunityScreen() {
             ].map((row) => (
               <View
                 key={row.rank}
-                style={[
-                  styles.leaderRow,
-                  isObsidian && {
-                    backgroundColor: PenguinObsidianTheme.card,
-                    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-                  },
-                  row.isMe && styles.leaderRowMe,
-                ]}>
-                <Text style={styles.rankBadge}>
-                  {row.rank === 1
-                    ? '🥇'
-                    : row.rank === 2
-                    ? '🥈'
-                    : row.rank === 3
-                    ? '🥉'
-                    : `#${row.rank}`}
-                </Text>
-                <Text style={{ fontSize: 26 }}>{row.avatar}</Text>
+                style={[styles.leaderRow, row.isMe && styles.leaderRowMe]}>
+                <Text style={styles.rankBadge}>{row.rank}</Text>
+                <View style={styles.avatarWrap}>
+                  <Text style={{ fontSize: 18 }}>{row.avatar}</Text>
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.userName,
-                      isObsidian &&
-                        !row.isMe && {
-                          color: PenguinObsidianTheme.textPrimary,
-                        },
-                    ]}>
-                    {row.name}
-                  </Text>
+                  <Text style={styles.userName}>{row.name}</Text>
                   <Text style={styles.companionSub}>
-                    🔥 {row.streak} day streak
+                    {row.streak} day streak
                   </Text>
                 </View>
                 <Text style={styles.leaderXp}>{row.xp}</Text>
@@ -484,11 +393,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   pageTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '900',
     color: PenguColors.navyHeading,
   },
@@ -499,72 +408,76 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   referralBanner: {
-    backgroundColor: '#1D8348',
-    borderRadius: 24,
-    padding: 16,
+    backgroundColor: PenguColors.surfaceMint,
+    borderRadius: 20,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderBottomWidth: 4,
-    borderBottomColor: '#145A32',
+    borderWidth: 1,
+    borderColor: PenguColors.mintBorder,
     marginBottom: 16,
   },
   referralGiftCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   referralTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
   },
   referralSub: {
     fontFamily: Fonts?.sans,
     fontSize: 12,
-    color: '#DCFCE7',
+    color: PenguColors.textSecondary,
     marginTop: 2,
   },
   segmentBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF2F6',
     borderRadius: 999,
     padding: 4,
-    borderWidth: 1,
-    borderColor: PenguColors.cardBorder,
     marginBottom: 16,
   },
   segmentItem: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 999,
     alignItems: 'center',
   },
   segmentItemActive: {
-    backgroundColor: PenguColors.primaryGreen,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#091E42',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   segmentText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: PenguColors.textSecondary,
   },
   segmentTextActive: {
-    color: '#FFFFFF',
+    color: PenguColors.navyHeading,
+    fontWeight: '800',
   },
   listCol: {
-    gap: 14,
+    gap: 12,
   },
   feedCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: PenguColors.cardBorder,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
     gap: 12,
   },
   feedHeader: {
@@ -573,51 +486,29 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatarWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E0F2FE',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  outfitMiniBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
   },
   nameAndStreakRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   userName: {
     fontFamily: Fonts?.rounded,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
     color: PenguColors.navyHeading,
   },
-  streakPill: {
-    backgroundColor: '#FFF7ED',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-  streakPillText: {
+  streakMeta: {
     fontFamily: Fonts?.rounded,
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#EA580C',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
   },
   companionSub: {
     fontFamily: Fonts?.sans,
@@ -629,40 +520,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: PenguColors.primaryGreen,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
   },
   followBtnActive: {
-    backgroundColor: PenguColors.surfaceMint,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
   },
   followBtnText: {
     fontFamily: Fonts?.rounded,
     fontSize: 12,
-    fontWeight: '800',
-    color: PenguColors.primaryGreen,
+    fontWeight: '700',
+    color: PenguColors.navyHeading,
   },
   followBtnTextActive: {
-    color: PenguColors.primaryGreenDark,
+    color: '#64748B',
   },
   actionCopy: {
     fontFamily: Fonts?.sans,
-    fontSize: 14,
-    color: PenguColors.navyHeading,
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#1E293B',
+    lineHeight: 22,
   },
   habitTagBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: PenguColors.surfaceMint,
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   habitTagText: {
     fontFamily: Fonts?.rounded,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     color: PenguColors.navyHeading,
   },
   feedFooter: {
@@ -674,46 +569,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
   },
   cheerBtnActive: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: PenguColors.surfaceMint,
+    borderColor: PenguColors.mintBorder,
   },
   cheerBtnText: {
     fontFamily: Fonts?.rounded,
     fontSize: 13,
-    fontWeight: '800',
-    color: PenguColors.navyHeading,
+    fontWeight: '700',
+    color: '#475569',
   },
   cheerBtnTextActive: {
-    color: '#B45309',
-  },
-  coopIntroBox: {
-    backgroundColor: '#EAF6FF',
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-  },
-  coopIntroTitle: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 16,
-    fontWeight: '900',
-    color: PenguColors.navyHeading,
-  },
-  coopIntroSub: {
-    fontFamily: Fonts?.sans,
-    fontSize: 13,
-    color: PenguColors.textSecondary,
-    marginTop: 2,
+    color: PenguColors.primaryGreenDark,
   },
   coopTopRow: {
     flexDirection: 'row',
@@ -723,23 +596,23 @@ const styles = StyleSheet.create({
   },
   coopHabitTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     color: PenguColors.navyHeading,
   },
   sharedFlameBadge: {
-    backgroundColor: '#FFF7ED',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: '#FB923C',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sharedFlameText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#EA580C',
+    fontSize: 13,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
   },
   dualStatusRow: {
     flexDirection: 'row',
@@ -753,18 +626,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     paddingHorizontal: 12,
     paddingVertical: 9,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
   },
   partnerStatusDone: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC',
+    backgroundColor: PenguColors.surfaceMint,
+    borderColor: PenguColors.mintBorder,
   },
   partnerStatusText: {
     fontFamily: Fonts?.rounded,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: PenguColors.navyHeading,
   },
   coopActionsRow: {
@@ -774,21 +647,23 @@ const styles = StyleSheet.create({
   },
   completedTag: {
     flex: 1,
-    backgroundColor: PenguColors.surfaceMint,
+    backgroundColor: '#F8FAFC',
     paddingVertical: 11,
     borderRadius: 999,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   completedTagText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 14,
-    fontWeight: '800',
-    color: PenguColors.primaryGreenDark,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
   },
   nudgeBtn: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 999,
@@ -796,34 +671,35 @@ const styles = StyleSheet.create({
   nudgeBtnText: {
     fontFamily: Fonts?.rounded,
     fontSize: 13,
-    fontWeight: '800',
-    color: '#B45309',
+    fontWeight: '700',
+    color: PenguColors.navyHeading,
   },
   leaderRow: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1.5,
-    borderColor: PenguColors.cardBorder,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
   },
   leaderRowMe: {
     backgroundColor: PenguColors.surfaceMint,
-    borderColor: PenguColors.primaryGreen,
+    borderColor: PenguColors.mintBorder,
   },
   rankBadge: {
-    fontFamily: Fonts?.rounded,
-    fontSize: 20,
-    fontWeight: '900',
-    width: 32,
+    width: 24,
     textAlign: 'center',
+    fontFamily: Fonts?.rounded,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#64748B',
   },
   leaderXp: {
     fontFamily: Fonts?.rounded,
-    fontSize: 16,
-    fontWeight: '900',
-    color: PenguColors.primaryGreen,
+    fontSize: 14,
+    fontWeight: '800',
+    color: PenguColors.primaryGreenDark,
   },
 });

@@ -13,16 +13,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArcticFooter, HabitIconBadge } from '@/components/pengu-ui';
 import { Fonts, PenguColors } from '@/constants/theme';
 import { usePenguStore } from '@/store/usePenguStore';
+import { playSound } from '@/utils/sound';
 
 type PeriodTab = 'Week' | 'Month' | 'All time';
+
+const OCTOBER_MINI_DAYS = Array.from({ length: 21 }, (_, idx) => {
+  const dayNum = idx + 1;
+  const dateKey = `2026-10-${String(dayNum).padStart(2, '0')}`;
+  return { dayNum, dateKey, isToday: dayNum === 16 };
+});
 
 export default function ProgressScreen() {
   const router = useRouter();
   const [period, setPeriod] = useState<PeriodTab>('Week');
   const habits = usePenguStore((s) => s.habits);
+  const completedByDate = usePenguStore((s) => s.completedByDate);
 
-  const activeHabits = habits.filter((h) => !h.archived);
-  const totalCompletions = habits.reduce((acc, h) => acc + h.totalCompletions, 0);
+  const activeHabits = habits.filter(
+    (h) => !h.archived && (h.habitType ?? 'build') === 'build'
+  );
+  const totalCompletions = habits.reduce(
+    (acc, h) => acc + h.totalCompletions,
+    0
+  );
   const bestStreak = habits.reduce((max, h) => Math.max(max, h.bestStreak), 12);
 
   const weekBars = [
@@ -57,7 +70,10 @@ export default function ProgressScreen() {
             return (
               <Pressable
                 key={tab}
-                onPress={() => setPeriod(tab)}
+                onPress={() => {
+                  playSound('tap');
+                  setPeriod(tab);
+                }}
                 style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
                 <Text
                   style={[
@@ -140,7 +156,7 @@ export default function ProgressScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={styles.statCheckCircle}>
-              <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={22} color="#FFFFFF" />
             </View>
             <View>
               <Text style={styles.statValue}>24</Text>
@@ -149,10 +165,96 @@ export default function ProgressScreen() {
           </View>
 
           <View style={styles.statCard}>
-            <Text style={{ fontSize: 34 }}>🔥</Text>
+            <Text style={{ fontSize: 32 }}>🔥</Text>
             <View>
               <Text style={styles.statValue}>{bestStreak}</Text>
               <Text style={styles.statLabel}>best streak</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Marked Habit Calendar Preview Card */}
+        <View style={styles.calendarPreviewCard}>
+          <View style={styles.calendarHeaderRow}>
+            <View>
+              <Text style={styles.calendarTitle}>Marked habit calendar</Text>
+              <Text style={styles.calendarSub}>October 2026 • Daily consistency</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                playSound('tap');
+                router.push('/progress/calendar' as any);
+              }}
+              style={styles.fullCalendarBtn}>
+              <Text style={styles.fullCalendarBtnText}>Full view</Text>
+              <Ionicons
+                name="arrow-forward"
+                size={14}
+                color={PenguColors.primaryGreen}
+              />
+            </Pressable>
+          </View>
+
+          <View style={styles.weekDaysHeader}>
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+              <Text key={i} style={styles.weekDayCellText}>
+                {d}
+              </Text>
+            ))}
+          </View>
+
+          <View style={styles.calendarGrid}>
+            {OCTOBER_MINI_DAYS.map((d) => {
+              const doneCount = (completedByDate[d.dateKey] ?? []).length;
+              const isAllDone =
+                doneCount >= Math.max(1, activeHabits.length);
+              const isPartial = doneCount > 0 && !isAllDone;
+              return (
+                <Pressable
+                  key={d.dateKey}
+                  onPress={() => {
+                    playSound('tap');
+                    router.push('/progress/day' as any);
+                  }}
+                  style={[
+                    styles.dayBubble,
+                    isAllDone && styles.dayBubbleComplete,
+                    isPartial && styles.dayBubblePartial,
+                    d.isToday && styles.dayBubbleToday,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.dayBubbleText,
+                      isAllDone && styles.dayBubbleTextComplete,
+                    ]}>
+                    {d.dayNum}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: PenguColors.primaryGreen },
+                ]}
+              />
+              <Text style={styles.legendLabel}>Completed</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View
+                style={[styles.legendDot, { backgroundColor: '#BAE6FD' }]}
+              />
+              <Text style={styles.legendLabel}>Partial</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View
+                style={[styles.legendDot, { backgroundColor: '#E2E8F0' }]}
+              />
+              <Text style={styles.legendLabel}>Scheduled</Text>
             </View>
           </View>
         </View>
@@ -161,7 +263,10 @@ export default function ProgressScreen() {
         <Text style={styles.sectionTitle}>Habit overview</Text>
         <View style={styles.overviewList}>
           {habitBreakdown.map((item) => {
-            const pct = Math.min(100, Math.round((item.done / item.target) * 100));
+            const pct = Math.min(
+              100,
+              Math.round((item.done / item.target) * 100)
+            );
             return (
               <View key={item.label} style={styles.overviewRow}>
                 <HabitIconBadge icon={item.icon} size={38} />
@@ -187,7 +292,7 @@ export default function ProgressScreen() {
               styles.linkCard,
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={{ fontSize: 28 }}>🗓️</Text>
+            <Text style={{ fontSize: 26 }}>🗓️</Text>
             <Text style={styles.linkCardText}>Open calendar</Text>
             <Ionicons
               name="arrow-forward"
@@ -202,7 +307,7 @@ export default function ProgressScreen() {
               styles.linkCard,
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={{ fontSize: 28 }}>🏆</Text>
+            <Text style={{ fontSize: 26 }}>🏆</Text>
             <Text style={styles.linkCardText}>Achievements</Text>
             <Ionicons
               name="arrow-forward"
@@ -212,7 +317,7 @@ export default function ProgressScreen() {
           </Pressable>
         </View>
 
-        <ArcticFooter mascot="celebrating" height={125} />
+        <ArcticFooter mascot="celebrating" height={120} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -233,7 +338,7 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '900',
     color: PenguColors.navyHeading,
     marginBottom: 14,
@@ -341,7 +446,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -352,19 +457,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: PenguColors.cardBorder,
+    borderColor: '#EAECEF',
   },
   statCheckCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: PenguColors.primaryGreen,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
     fontFamily: Fonts?.rounded,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     color: PenguColors.navyHeading,
   },
@@ -373,9 +478,122 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: PenguColors.textSecondary,
   },
+  calendarPreviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
+    marginBottom: 18,
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  calendarTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 18,
+    fontWeight: '900',
+    color: PenguColors.navyHeading,
+  },
+  calendarSub: {
+    fontFamily: Fonts?.sans,
+    fontSize: 12,
+    color: PenguColors.textSecondary,
+    marginTop: 2,
+  },
+  fullCalendarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: PenguColors.surfaceMint,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  fullCalendarBtnText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 12,
+    fontWeight: '800',
+    color: PenguColors.primaryGreenDark,
+  },
+  weekDaysHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  weekDayCellText: {
+    width: '13.5%',
+    textAlign: 'center',
+    fontFamily: Fonts?.rounded,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+  },
+  dayBubble: {
+    width: '13.5%',
+    aspectRatio: 1,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayBubbleComplete: {
+    backgroundColor: PenguColors.primaryGreen,
+  },
+  dayBubblePartial: {
+    backgroundColor: '#DDF2FF',
+  },
+  dayBubbleToday: {
+    borderWidth: 2,
+    borderColor: PenguColors.navyHeading,
+  },
+  dayBubbleText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 13,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
+  },
+  dayBubbleTextComplete: {
+    color: '#FFFFFF',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendLabel: {
+    fontFamily: Fonts?.sans,
+    fontSize: 12,
+    color: PenguColors.textSecondary,
+  },
   sectionTitle: {
     fontFamily: Fonts?.rounded,
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: '900',
     color: PenguColors.navyHeading,
     marginBottom: 10,
@@ -393,7 +611,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: PenguColors.cardBorder,
+    borderColor: '#EAECEF',
   },
   overviewLabel: {
     width: 82,
@@ -404,21 +622,21 @@ const styles = StyleSheet.create({
   },
   overviewTrack: {
     flex: 1,
-    height: 12,
-    borderRadius: 6,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#E2E8F0',
     overflow: 'hidden',
   },
   overviewFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 5,
     backgroundColor: PenguColors.primaryGreen,
   },
   overviewFraction: {
     width: 34,
     textAlign: 'right',
     fontFamily: Fonts?.rounded,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: PenguColors.navyHeading,
   },
@@ -437,7 +655,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: PenguColors.cardBorder,
+    borderColor: '#EAECEF',
   },
   linkCardText: {
     fontFamily: Fonts?.rounded,

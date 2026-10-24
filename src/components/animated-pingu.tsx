@@ -1,20 +1,26 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
+  type SharedValue,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
 import { MASCOT_IMAGES } from '@/components/pengu-ui';
-import { Fonts, PenguColors, PenguinObsidianTheme } from '@/constants/theme';
+import { Fonts, PenguColors } from '@/constants/theme';
 import { SHOP_CATALOG, usePenguStore } from '@/store/usePenguStore';
+import { bell, flow, loop, seeded, useLoopClock, wave } from '@/utils/motion';
 import { playSound } from '@/utils/sound';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export type MascotPoseKey = keyof typeof MASCOT_IMAGES;
 export type MascotAnimMode = 'breathing' | 'walking' | 'celebrating' | 'focus';
@@ -42,11 +48,8 @@ export function AnimatedPingu({
   const equippedOutfitId = usePenguStore((s) => s.equippedOutfitId);
   const equippedAccessoryId = usePenguStore((s) => s.equippedAccessoryId);
 
-  const translateY = useSharedValue(0);
-  const translateX = useSharedValue(0);
-  const scaleX = useSharedValue(1);
-  const scaleY = useSharedValue(1);
-  const rotateZ = useSharedValue(0);
+  // Single 4800ms master clock per character (rossark-motion-skill principle #2)
+  const clock = useLoopClock(4800, !reduceMotion);
   const tapBounce = useSharedValue(1);
 
   const [heartPop, setHeartPop] = useState(false);
@@ -54,151 +57,101 @@ export function AnimatedPingu({
   const outfitItem = SHOP_CATALOG.find((i) => i.id === equippedOutfitId);
   const accessoryItem = SHOP_CATALOG.find((i) => i.id === equippedAccessoryId);
 
-  useEffect(() => {
+  // Main body motion driven by rossark-motion-skill wave() & flow()
+  const bodyAnimatedStyle = useAnimatedStyle(() => {
+    const t = clock.value;
     if (reduceMotion) {
-      translateY.value = 0;
-      translateX.value = 0;
-      scaleX.value = 1;
-      scaleY.value = 1;
-      rotateZ.value = 0;
-      return;
+      return { transform: [{ scale: tapBounce.value }] };
     }
 
     if (mode === 'walking') {
-      // Waddle horizontally across the ice floe
-      translateX.value = withRepeat(
-        withSequence(
-          withTiming(38, { duration: 2400, easing: Easing.inOut(Easing.quad) }),
-          withTiming(-38, { duration: 2400, easing: Easing.inOut(Easing.quad) })
-        ),
-        -1,
-        true
-      );
-      // Bouncy footsteps
-      translateY.value = withRepeat(
-        withSequence(
-          withTiming(-9, { duration: 260, easing: Easing.out(Easing.quad) }),
-          withTiming(0, { duration: 260, easing: Easing.in(Easing.quad) })
-        ),
-        -1,
-        true
-      );
-      // Waddle side-to-side tilt
-      rotateZ.value = withRepeat(
-        withSequence(
-          withTiming(6, { duration: 260 }),
-          withTiming(-6, { duration: 260 })
-        ),
-        -1,
-        true
-      );
-      // Subtle squash & stretch
-      scaleY.value = withRepeat(
-        withSequence(
-          withTiming(1.04, { duration: 260 }),
-          withTiming(0.96, { duration: 260 })
-        ),
-        -1,
-        true
-      );
-    } else if (mode === 'celebrating') {
-      translateY.value = withRepeat(
-        withSequence(
-          withTiming(-18, { duration: 340, easing: Easing.out(Easing.cubic) }),
-          withTiming(0, { duration: 300, easing: Easing.bounce })
-        ),
-        -1,
-        false
-      );
-      rotateZ.value = withRepeat(
-        withSequence(
-          withTiming(-8, { duration: 320 }),
-          withTiming(8, { duration: 320 })
-        ),
-        -1,
-        true
-      );
-      scaleX.value = withRepeat(
-        withSequence(
-          withTiming(1.06, { duration: 320 }),
-          withTiming(0.96, { duration: 320 })
-        ),
-        -1,
-        true
-      );
-    } else if (mode === 'focus') {
-      // Deep calm ADHD body-doubling breathing
-      scaleY.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0.97, { duration: 2200, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
-      translateY.value = withRepeat(
-        withSequence(
-          withTiming(-5, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
-          withTiming(2, { duration: 2200, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
-      rotateZ.value = withRepeat(
-        withSequence(
-          withTiming(2.5, { duration: 2600 }),
-          withTiming(-2.5, { duration: 2600 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      // Default breathing + gentle idle bob
-      translateY.value = withRepeat(
-        withSequence(
-          withTiming(-7, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
-      scaleY.value = withRepeat(
-        withSequence(
-          withTiming(1.035, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0.975, { duration: 1400, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
-      rotateZ.value = withRepeat(
-        withSequence(
-          withTiming(3, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
-          withTiming(-3, { duration: 1800, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
+      const tx = flow(t, [
+        [0, 0],
+        [1200, 14],
+        [2400, 0],
+        [3600, -14],
+        [4800, 0],
+      ]);
+      const ty = -Math.abs(wave(t, 800, 0)) * 5;
+      const rot = wave(t, 800, 0.12) * 3.5;
+      const sy = 1 + wave(t, 800, 0) * 0.022;
+      return {
+        transform: [
+          { translateX: tx },
+          { translateY: ty },
+          { scaleX: tapBounce.value },
+          { scaleY: sy * tapBounce.value },
+          { rotateZ: `${rot}deg` },
+        ],
+      };
     }
-  }, [mode, reduceMotion, rotateZ, scaleX, scaleY, translateX, translateY]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scaleX: scaleX.value * tapBounce.value },
-      { scaleY: scaleY.value * tapBounce.value },
-      { rotateZ: `${rotateZ.value}deg` },
-    ],
-  }));
+    if (mode === 'celebrating') {
+      const ty = -Math.abs(wave(t, 600, 0)) * 11;
+      const rot = wave(t, 1200, 0.1) * 5;
+      const sx = 1 + wave(t, 600, 0) * 0.035;
+      return {
+        transform: [
+          { translateY: ty },
+          { scaleX: sx * tapBounce.value },
+          { scaleY: tapBounce.value },
+          { rotateZ: `${rot}deg` },
+        ],
+      };
+    }
+
+    if (mode === 'focus') {
+      // Calm 4.8s deep focus breath
+      const breath = wave(t, 4800, 0);
+      return {
+        transform: [
+          { translateY: breath * -3.5 },
+          { scaleX: (1 + breath * 0.015) * tapBounce.value },
+          { scaleY: (1 + breath * 0.025) * tapBounce.value },
+          { rotateZ: `${wave(t, 4800, 0.25) * 1.8}deg` },
+        ],
+      };
+    }
+
+    // Default calm idle breathing (rossark-motion-skill: small amplitude, 3.2-4.8s cycle)
+    const breath = wave(t, 2400, 0);
+    const tilt = wave(t, 4800, 0.2) * 2.4;
+    return {
+      transform: [
+        { translateY: breath * -4.5 },
+        { scaleX: (1 - breath * 0.012) * tapBounce.value },
+        { scaleY: (1 + breath * 0.024) * tapBounce.value },
+        { rotateZ: `${tilt}deg` },
+      ],
+    };
+  });
+
+  // Secondary follow-through with phase delay on outfit badge (rossark-motion-skill principle #5)
+  const outfitFollowStyle = useAnimatedStyle(() => {
+    const t = clock.value;
+    const delayedY = wave(t, 2400, 0.18) * -3.5;
+    const delayedRot = wave(t, 2400, 0.28) * 6;
+    return {
+      transform: [{ translateY: delayedY }, { rotateZ: `${delayedRot}deg` }],
+    };
+  });
+
+  const accessoryFollowStyle = useAnimatedStyle(() => {
+    const t = clock.value;
+    const delayedY = wave(t, 2400, 0.32) * -3.5;
+    return {
+      transform: [{ translateY: delayedY }],
+    };
+  });
 
   const handleTap = () => {
     playSound('tap', 1.25);
     tapBounce.value = withSequence(
-      withSpring(1.18, { damping: 6, stiffness: 260 }),
-      withSpring(1, { damping: 10, stiffness: 200 })
+      withSpring(1.12, { damping: 8, stiffness: 260 }),
+      withSpring(1, { damping: 12, stiffness: 220 })
     );
     setHeartPop(true);
-    setTimeout(() => setHeartPop(false), 900);
+    setTimeout(() => setHeartPop(false), 850);
     onPress?.();
   };
 
@@ -214,14 +167,19 @@ export function AnimatedPingu({
 
       {heartPop && (
         <View style={styles.heartFloat}>
-          <Text style={{ fontSize: 22 }}>💛 +1 Joy!</Text>
+          <Text style={styles.heartFloatText}>💛 +1 Joy</Text>
         </View>
       )}
 
       <Animated.View
         style={[
-          { width: size, height: size, alignItems: 'center', justifyContent: 'center' },
-          animatedStyle,
+          {
+            width: size,
+            height: size,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          bodyAnimatedStyle,
         ]}>
         <Image
           source={MASCOT_IMAGES[pose]}
@@ -230,17 +188,62 @@ export function AnimatedPingu({
         />
 
         {showEquippedBadges && outfitItem && (
-          <View style={styles.outfitBadge}>
-            <Text style={{ fontSize: 18 }}>{outfitItem.emoji}</Text>
-          </View>
+          <Animated.View style={[styles.outfitBadge, outfitFollowStyle]}>
+            <Text style={{ fontSize: 16 }}>{outfitItem.emoji}</Text>
+          </Animated.View>
         )}
         {showEquippedBadges && accessoryItem && (
-          <View style={styles.accessoryBadge}>
-            <Text style={{ fontSize: 18 }}>{accessoryItem.emoji}</Text>
-          </View>
+          <Animated.View style={[styles.accessoryBadge, accessoryFollowStyle]}>
+            <Text style={{ fontSize: 16 }}>{accessoryItem.emoji}</Text>
+          </Animated.View>
         )}
       </Animated.View>
     </Pressable>
+  );
+}
+
+/**
+ * Seeded ambient snow/sparkle mote using rossark-motion-skill's loop(), bell(), and seeded()
+ */
+function AmbientMote({
+  index,
+  clock,
+}: {
+  index: number;
+  clock: SharedValue<number>;
+}) {
+  const phase = seeded(index, 1);
+  const leftPct = 12 + Math.round(seeded(index, 2) * 76);
+  const topBase = 16 + Math.round(seeded(index, 3) * 110);
+  const dotSize = 5 + Math.round(seeded(index, 4) * 5);
+
+  const moteStyle = useAnimatedStyle(() => {
+    const p = loop(clock.value, 4800, phase);
+    const opacity = bell(p) * 0.65;
+    const translateY = -p * 22;
+    const translateX = wave(clock.value, 4800, phase) * 6;
+    return {
+      opacity,
+      transform: [{ translateX }, { translateY }],
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left: `${leftPct}%`,
+          top: topBase,
+          width: dotSize,
+          height: dotSize,
+          borderRadius: dotSize / 2,
+          backgroundColor: '#FFFFFF',
+        },
+        moteStyle,
+      ]}
+    />
   );
 }
 
@@ -249,6 +252,7 @@ interface LivingEcosystemPanelProps {
   totalCount: number;
   onPressFocus: () => void;
   onPressCelebrate: () => void;
+  onPressPinguHome?: () => void;
 }
 
 export function LivingEcosystemPanel({
@@ -256,148 +260,161 @@ export function LivingEcosystemPanel({
   totalCount,
   onPressFocus,
   onPressCelebrate,
+  onPressPinguHome,
 }: LivingEcosystemPanelProps) {
-  const themeMode = usePenguStore((s) => s.themeMode);
-  const equippedSceneryId = usePenguStore((s) => s.equippedSceneryId);
-  const pinguEnergy = usePenguStore((s) => s.pinguEnergy);
-  const streakShields = usePenguStore((s) => s.streakShields);
+  const reduceMotion = usePenguStore((s) => s.reduceMotion);
   const habits = usePenguStore((s) => s.habits);
-
-  const isObsidian =
-    themeMode === 'dark' || equippedSceneryId === 'penguin-obsidian';
 
   const maxStreak = habits.reduce((max, h) => Math.max(max, h.streak), 8);
   const dailyScore =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const remaining = Math.max(0, totalCount - completedCount);
+  const isAllDone = totalCount > 0 && completedCount >= totalCount;
 
-  const getTemptationPrompt = () => {
-    if (remaining === 0 && totalCount > 0) {
-      return '🎉 Campfire lit! 100% score today — tap to blast confetti!';
-    }
-    if (remaining === 1) {
-      return '🔥 1 habit left to light Pingu’s cozy arctic campfire!';
-    }
-    return `🐧 Waddling on the ice... Complete ${remaining} steps to power up Pingu!`;
-  };
+  // Smoothly animated SVG Score Ring using EASE_OUT cubic bezier
+  const ringSize = 68;
+  const strokeWidth = 7;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const progressSv = useSharedValue(dailyScore / 100);
+  const ambientClock = useLoopClock(4800, !reduceMotion);
+
+  useEffect(() => {
+    progressSv.value = withTiming(dailyScore / 100, {
+      duration: 650,
+      easing: Easing.bezier(0.23, 1, 0.32, 1),
+    });
+  }, [dailyScore, progressSv]);
+
+  const animatedCircleProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progressSv.value),
+  }));
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(progressSv.value * 100)}%`,
+  }));
 
   return (
-    <View
-      style={[
-        styles.ecoContainer,
-        isObsidian && styles.ecoContainerObsidian,
-      ]}>
-      {/* Background Arctic Illustration */}
+    <View style={styles.heroCard}>
+      {/* Soft Arctic Background Illustration */}
       <Image
         source={MASCOT_IMAGES.arctic}
-        style={[styles.ecoBg, isObsidian && { opacity: 0.22 }]}
+        style={styles.heroBg}
         contentFit="cover"
       />
 
-      {/* Ambient Aurora / Feather Glow in Obsidian Mode */}
-      {isObsidian && <View style={styles.auroraGlow} />}
+      {/* Out-of-phase ambient snow/sparkle particles (rossark-motion-skill principle #6) */}
+      {[0, 1, 2, 3].map((i) => (
+        <AmbientMote key={i} index={i} clock={ambientClock} />
+      ))}
 
-      {/* Top HUD Bar inside Ecosystem */}
-      <View style={styles.hudRow}>
-        <View style={[styles.hudPill, isObsidian && styles.hudPillDark]}>
-          <Text style={styles.hudEmoji}>🎯</Text>
-          <View>
-            <Text style={[styles.hudLabel, isObsidian && styles.hudLabelDark]}>
-              DAILY SCORE
-            </Text>
-            <Text style={[styles.hudValue, isObsidian && styles.hudValueDark]}>
-              {dailyScore} pts
-            </Text>
+      <View style={styles.heroContentRow}>
+        {/* Left Column: Minimalist Today Header, Fluid Score Ring & Quick Actions */}
+        <View style={styles.heroLeftCol}>
+          <View style={styles.todayTopRow}>
+            <Text style={styles.todayTitle}>Today</Text>
+            <View style={styles.streakTag}>
+              <Text style={styles.streakTagText}>🔥 {maxStreak}d</Text>
+            </View>
+          </View>
+
+          <Text style={styles.todaySub}>
+            {completedCount} of {totalCount} habits completed
+          </Text>
+
+          {/* Fluid SVG Score Ring + Score Metrics */}
+          <View style={styles.scoreRingRow}>
+            <View style={styles.ringBox}>
+              <Svg width={ringSize} height={ringSize}>
+                <Circle
+                  stroke="rgba(9, 30, 66, 0.08)"
+                  fill="rgba(255, 255, 255, 0.75)"
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  strokeWidth={strokeWidth}
+                />
+                <AnimatedCircle
+                  stroke={PenguColors.primaryGreen}
+                  fill="none"
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${circumference} ${circumference}`}
+                  animatedProps={animatedCircleProps}
+                  strokeLinecap="round"
+                  transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
+                />
+              </Svg>
+              <View style={styles.ringCenterTextWrap}>
+                <Text style={styles.ringScoreText}>{dailyScore}%</Text>
+              </View>
+            </View>
+
+            <View style={styles.scoreMetaCol}>
+              <Text style={styles.scoreMetaLabel}>DAILY SCORE</Text>
+              <Text style={styles.scoreMetaStatus}>
+                {isAllDone
+                  ? 'All goals complete!'
+                  : dailyScore >= 50
+                  ? 'Steady momentum'
+                  : 'Small steps count'}
+              </Text>
+              <View style={styles.miniProgressTrack}>
+                <Animated.View
+                  style={[styles.miniProgressFill, progressBarStyle]}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Minimalist Action Pills: Focus Session & Pingu's Home */}
+          <View style={styles.actionPillsRow}>
+            <Pressable
+              onPress={() => {
+                playSound('tap');
+                onPressFocus();
+              }}
+              style={({ pressed }) => [
+                styles.focusActionPill,
+                pressed && { transform: [{ scale: 0.96 }] },
+              ]}>
+              <Ionicons
+                name="timer-outline"
+                size={15}
+                color="#FFFFFF"
+              />
+              <Text style={styles.focusActionPillText}>Focus Session</Text>
+            </Pressable>
+
+            {onPressPinguHome && (
+              <Pressable
+                onPress={() => {
+                  playSound('tap');
+                  onPressPinguHome();
+                }}
+                style={({ pressed }) => [
+                  styles.secondaryActionPill,
+                  pressed && { opacity: 0.8 },
+                ]}>
+                <Text style={styles.secondaryActionPillText}>🐧 Pingu</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
-        <View style={[styles.hudPill, isObsidian && styles.hudPillDark]}>
-          <Text style={styles.hudEmoji}>⚡</Text>
-          <View>
-            <Text style={[styles.hudLabel, isObsidian && styles.hudLabelDark]}>
-              ENERGY
-            </Text>
-            <Text style={[styles.hudValue, isObsidian && styles.hudValueDark]}>
-              {pinguEnergy}%
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.hudPill, isObsidian && styles.hudPillDark]}>
-          <Text style={styles.hudEmoji}>🔥</Text>
-          <Text style={[styles.hudValue, isObsidian && styles.hudValueDark]}>
-            {maxStreak}d
-          </Text>
-        </View>
-
-        <View style={[styles.hudPill, isObsidian && styles.hudPillDark]}>
-          <Text style={styles.hudEmoji}>🧊</Text>
-          <Text style={[styles.hudValue, isObsidian && styles.hudValueDark]}>
-            {streakShields}
-          </Text>
+        {/* Right Column: Breathing / Acting Pingu Companion */}
+        <View style={styles.heroMascotCol}>
+          <AnimatedPingu
+            pose={isAllDone ? 'celebrating' : 'waving'}
+            mode={isAllDone ? 'celebrating' : 'walking'}
+            size={126}
+            showEquippedBadges
+            onPress={isAllDone ? onPressCelebrate : onPressPinguHome}
+          />
         </View>
       </View>
-
-      {/* Interactive Ecosystem Stage with Walking Pingu & Props */}
-      <View style={styles.stageArea}>
-        {/* Left Prop: Cozy Igloo / Study Lantern */}
-        <Pressable onPress={onPressFocus} style={styles.propLeft}>
-          <Text style={{ fontSize: 32 }}>🏮</Text>
-          <View style={styles.propTag}>
-            <Text style={styles.propTagText}>Focus Timer</Text>
-          </View>
-        </Pressable>
-
-        {/* Center Waddling / Celebrating Pingu */}
-        <AnimatedPingu
-          pose={remaining === 0 && totalCount > 0 ? 'celebrating' : 'waving'}
-          mode={remaining === 0 && totalCount > 0 ? 'celebrating' : 'walking'}
-          size={132}
-          showEquippedBadges
-          onPress={
-            remaining === 0 && totalCount > 0 ? onPressCelebrate : undefined
-          }
-        />
-
-        {/* Right Prop: Campfire / Fish Bucket */}
-        <Pressable
-          onPress={onPressCelebrate}
-          style={styles.propRight}>
-          <Text style={{ fontSize: 32 }}>
-            {remaining === 0 && totalCount > 0 ? '🔥' : '🪵'}
-          </Text>
-          <View style={styles.propTag}>
-            <Text style={styles.propTagText}>
-              {completedCount}/{totalCount} Done
-            </Text>
-          </View>
-        </Pressable>
-      </View>
-
-      {/* Bottom Temptation Banner + Energy Bar */}
-      <Pressable
-        onPress={
-          remaining === 0 && totalCount > 0 ? onPressCelebrate : onPressFocus
-        }
-        style={[
-          styles.temptationBar,
-          isObsidian && styles.temptationBarDark,
-        ]}>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.temptationText,
-              isObsidian && { color: PenguinObsidianTheme.textPrimary },
-            ]}>
-            {getTemptationPrompt()}
-          </Text>
-          <View style={styles.energyTrack}>
-            <View
-              style={[styles.energyFill, { width: `${dailyScore}%` }]}
-            />
-          </View>
-        </View>
-      </Pressable>
     </View>
   );
 }
@@ -412,44 +429,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#BAE6FD',
+    borderWidth: 1,
+    borderColor: '#D5ECF9',
     marginBottom: 6,
     maxWidth: 240,
     shadowColor: '#091E42',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
   speechText: {
     fontFamily: Fonts?.rounded,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: PenguColors.navyHeading,
     textAlign: 'center',
   },
   heartFloat: {
     position: 'absolute',
-    top: -18,
-    backgroundColor: '#FFFBEB',
+    top: -16,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#E2E8F0',
     zIndex: 20,
+  },
+  heartFloatText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 12,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
   },
   outfitBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#BAE6FD',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -457,144 +480,164 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 6,
     left: 4,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#BAE6FD',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ecoContainer: {
-    backgroundColor: '#E0F4FF',
-    borderRadius: 28,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: '#BAE6FD',
+  heroCard: {
+    backgroundColor: '#EAF6FF',
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#D5ECF9',
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  ecoContainerObsidian: {
-    backgroundColor: PenguinObsidianTheme.card,
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-  },
-  ecoBg: {
+  heroBg: {
     ...StyleSheet.absoluteFill,
-    opacity: 0.52,
+    opacity: 0.42,
   },
-  auroraGlow: {
-    position: 'absolute',
-    top: -30,
-    left: '15%',
-    width: '70%',
-    height: 90,
-    borderRadius: 999,
-    backgroundColor: 'rgba(16, 185, 129, 0.16)',
-  },
-  hudRow: {
+  heroContentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
-    zIndex: 5,
+    zIndex: 2,
   },
-  hudPill: {
+  heroLeftCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  todayTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    gap: 8,
+  },
+  todayTitle: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 28,
+    fontWeight: '900',
+    color: PenguColors.navyHeading,
+    letterSpacing: -0.4,
+  },
+  streakTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(186, 230, 253, 0.8)',
+    borderColor: 'rgba(255, 255, 255, 0.95)',
   },
-  hudPillDark: {
-    backgroundColor: 'rgba(9, 17, 30, 0.82)',
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-  },
-  hudEmoji: {
-    fontSize: 16,
-  },
-  hudLabel: {
+  streakTagText: {
     fontFamily: Fonts?.rounded,
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
-    color: PenguColors.textSecondary,
-    letterSpacing: 0.4,
+    color: PenguColors.navyHeading,
   },
-  hudLabelDark: {
-    color: PenguinObsidianTheme.textSecondary,
-  },
-  hudValue: {
-    fontFamily: Fonts?.rounded,
+  todaySub: {
+    fontFamily: Fonts?.sans,
     fontSize: 14,
+    color: '#475569',
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  scoreRingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    padding: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    marginBottom: 12,
+  },
+  ringBox: {
+    width: 68,
+    height: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringCenterTextWrap: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringScoreText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 15,
     fontWeight: '900',
     color: PenguColors.navyHeading,
   },
-  hudValueDark: {
-    color: PenguinObsidianTheme.textPrimary,
+  scoreMetaCol: {
+    flex: 1,
+    gap: 3,
   },
-  stageArea: {
-    height: 148,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    paddingBottom: 6,
-  },
-  propLeft: {
-    alignItems: 'center',
-    gap: 4,
-    paddingBottom: 6,
-  },
-  propRight: {
-    alignItems: 'center',
-    gap: 4,
-    paddingBottom: 6,
-  },
-  propTag: {
-    backgroundColor: 'rgba(9, 30, 66, 0.75)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  propTagText: {
+  scoreMetaLabel: {
     fontFamily: Fonts?.rounded,
     fontSize: 10,
     fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+  },
+  scoreMetaStatus: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 14,
+    fontWeight: '800',
+    color: PenguColors.navyHeading,
+  },
+  miniProgressTrack: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(9, 30, 66, 0.08)',
+    overflow: 'hidden',
+    marginTop: 3,
+  },
+  miniProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: PenguColors.primaryGreen,
+  },
+  actionPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  focusActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: PenguColors.primaryGreen,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  focusActionPillText: {
+    fontFamily: Fonts?.rounded,
+    fontSize: 13,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-  temptationBar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  secondaryActionPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#D5ECF9',
   },
-  temptationBarDark: {
-    backgroundColor: 'rgba(9, 17, 30, 0.88)',
-    borderColor: PenguinObsidianTheme.bellyHighlightBorder,
-  },
-  temptationText: {
+  secondaryActionPillText: {
     fontFamily: Fonts?.rounded,
     fontSize: 13,
     fontWeight: '800',
     color: PenguColors.navyHeading,
-    marginBottom: 6,
   },
-  energyTrack: {
-    width: '100%',
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(148, 163, 184, 0.25)',
-    overflow: 'hidden',
-  },
-  energyFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#10B981',
+  heroMascotCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
